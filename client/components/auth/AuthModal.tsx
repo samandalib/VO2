@@ -26,7 +26,7 @@ import {
   User,
   AlertCircle,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -43,25 +43,13 @@ export function AuthModal({
   description = "Sign in to track your progress and access personalized training protocols",
   onSuccess,
 }: AuthModalProps) {
-  const {
-    signIn,
-    signUp,
-    forgotPassword,
-    isLoading,
-    error,
-    clearError,
-    isEmailVerificationRequired,
-    getErrorMessage,
-  } = useAuth();
+  const { signIn, signUp, signInWithGoogle, loading: isLoading } = useAuth();
 
   const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
   const [showPassword, setShowPassword] = useState(false);
   const [showVerificationSuccess, setShowVerificationSuccess] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState("");
-  const [verificationLink, setVerificationLink] = useState("");
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
-  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState(false);
+  const [error, setError] = useState<string>("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -101,6 +89,8 @@ export function AuthModal({
     return Object.keys(errors).length === 0;
   };
 
+  const clearError = () => setError("");
+
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
@@ -114,11 +104,15 @@ export function AuthModal({
     if (!validateForm(false)) return;
 
     try {
-      await signIn(formData.email, formData.password);
+      const { error } = await signIn(formData.email, formData.password);
+      if (error) {
+        setError(error.message);
+        return;
+      }
       onSuccess?.();
       onClose();
     } catch (error) {
-      // Error is handled by AuthContext and useAuth hook
+      setError("An unexpected error occurred");
     }
   };
 
@@ -126,53 +120,37 @@ export function AuthModal({
     if (!validateForm(true)) return;
 
     try {
-      const response = await signUp(
+      const { error } = await signUp(
         formData.email,
         formData.password,
         formData.name,
       );
 
-      // If requires verification, show verification success screen
-      if (response?.requiresVerification) {
-        setVerificationEmail(formData.email);
-        // In development, show the verification link directly
-        if (response.verificationLink) {
-          setVerificationLink(response.verificationLink);
-        }
-        setShowVerificationSuccess(true);
-        resetForm();
+      if (error) {
+        setError(error.message);
         return;
       }
 
-      // If immediate login (unlikely with verification enabled)
-      onSuccess?.();
-      onClose();
+      // Show verification success screen
+      setVerificationEmail(formData.email);
+      setShowVerificationSuccess(true);
+      resetForm();
     } catch (error) {
-      // Error is handled by AuthContext
+      setError("An unexpected error occurred");
     }
   };
 
   const handleGoogleSignIn = async () => {
-    // TODO: Implement Google OAuth integration
-    console.log("Google Sign In will be implemented later");
-  };
-
-  const handleForgotPassword = async () => {
-    if (!forgotPasswordEmail) {
-      setFormErrors({ email: "Email is required" });
-      return;
-    }
-
-    if (!/\S+@\S+\.\S+/.test(forgotPasswordEmail)) {
-      setFormErrors({ email: "Please enter a valid email" });
-      return;
-    }
-
     try {
-      await forgotPassword(forgotPasswordEmail);
-      setForgotPasswordSuccess(true);
+      const { error } = await signInWithGoogle();
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      onSuccess?.();
+      onClose();
     } catch (error) {
-      // Error is handled by AuthContext
+      setError("Google sign in failed");
     }
   };
 
@@ -186,10 +164,6 @@ export function AuthModal({
     setFormErrors({});
     setShowVerificationSuccess(false);
     setVerificationEmail("");
-    setVerificationLink("");
-    setShowForgotPassword(false);
-    setForgotPasswordEmail("");
-    setForgotPasswordSuccess(false);
     clearError();
   };
 
@@ -296,8 +270,13 @@ export function AuthModal({
                   <button
                     type="button"
                     onClick={() => {
-                      setShowForgotPassword(true);
-                      setForgotPasswordEmail(formData.email);
+                      if (formData.email) {
+                        alert(
+                          `Password reset link would be sent to ${formData.email}`,
+                        );
+                      } else {
+                        alert("Please enter your email first");
+                      }
                     }}
                     className="text-sm text-primary hover:underline"
                     disabled={isLoading}
@@ -531,142 +510,6 @@ export function AuthModal({
           </TabsContent>
         </Tabs>
 
-        {/* Forgot Password Screen */}
-        {showForgotPassword && !forgotPasswordSuccess && (
-          <div className="absolute inset-0 bg-background rounded-lg flex flex-col p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold">Reset Password</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowForgotPassword(false)}
-                className="h-8 w-8 p-0"
-              >
-                ✕
-              </Button>
-            </div>
-
-            <div className="space-y-4 flex-1">
-              <p className="text-muted-foreground text-sm">
-                Enter your email address and we'll send you a link to reset your
-                password.
-              </p>
-
-              <div className="space-y-2">
-                <Label htmlFor="forgot-email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="forgot-email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={forgotPasswordEmail}
-                    onChange={(e) => {
-                      setForgotPasswordEmail(e.target.value);
-                      setFormErrors({});
-                      clearError();
-                    }}
-                    className={`pl-10 ${formErrors.email ? "border-red-500" : ""}`}
-                    disabled={isLoading}
-                  />
-                </div>
-                {formErrors.email && (
-                  <p className="text-sm text-red-600">{formErrors.email}</p>
-                )}
-              </div>
-
-              {error && (
-                <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>{error}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3 mt-6">
-              <Button
-                onClick={handleForgotPassword}
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending reset link...
-                  </>
-                ) : (
-                  "Send Reset Link"
-                )}
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={() => setShowForgotPassword(false)}
-                className="w-full"
-                disabled={isLoading}
-              >
-                Back to Sign In
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Forgot Password Success Screen */}
-        {showForgotPassword && forgotPasswordSuccess && (
-          <div className="absolute inset-0 bg-background rounded-lg flex flex-col items-center justify-center p-6 text-center">
-            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/30 rounded-full flex items-center justify-center mb-4">
-              <svg
-                className="w-8 h-8 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-
-            <h3 className="text-lg font-semibold mb-2">Reset Link Sent!</h3>
-            <p className="text-muted-foreground mb-4">
-              We've sent a password reset link to:
-            </p>
-            <p className="font-medium text-primary mb-6">
-              {forgotPasswordEmail}
-            </p>
-
-            <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 mb-6 text-sm">
-              <p className="font-medium text-primary mb-2">
-                📧 Development Mode - Check Console
-              </p>
-              <p className="text-blue-700">
-                The password reset link has been logged to your browser console.
-                Open Developer Tools (F12) → Console tab to see the link.
-              </p>
-            </div>
-
-            <div className="space-y-3 w-full">
-              <Button
-                onClick={() => {
-                  setShowForgotPassword(false);
-                  setForgotPasswordSuccess(false);
-                  setActiveTab("signin");
-                }}
-                className="w-full"
-              >
-                Back to Sign In
-              </Button>
-            </div>
-
-            <p className="text-xs text-muted-foreground mt-4">
-              Didn't receive the email? Check your spam folder or try again.
-            </p>
-          </div>
-        )}
-
         {/* Email Verification Success Screen */}
         {showVerificationSuccess && (
           <div className="absolute inset-0 bg-background rounded-lg flex flex-col items-center justify-center p-6 text-center">
@@ -692,30 +535,6 @@ export function AuthModal({
             </p>
             <p className="font-medium text-primary mb-6">{verificationEmail}</p>
 
-            {verificationLink && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm">
-                <p className="font-medium text-blue-800 mb-3">
-                  🔗 Development Mode - Direct Verification Link
-                </p>
-                <div className="bg-white border rounded p-3 mb-3">
-                  <p className="text-xs text-gray-600 mb-1">
-                    Click to verify your email:
-                  </p>
-                  <a
-                    href={verificationLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 underline break-all text-sm"
-                  >
-                    {verificationLink}
-                  </a>
-                </div>
-                <p className="text-blue-700">
-                  In production, this link would be sent via email instead.
-                </p>
-              </div>
-            )}
-
             <div className="space-y-3 w-full">
               <Button
                 onClick={() => {
@@ -737,8 +556,8 @@ export function AuthModal({
             </div>
 
             <p className="text-xs text-muted-foreground mt-4">
-              Didn't receive the email? Check your spam folder or contact
-              support.
+              Check your email and click the verification link to complete your
+              account setup.
             </p>
           </div>
         )}

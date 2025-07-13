@@ -4,7 +4,7 @@
  */
 
 // Main hook
-export { useAuth } from "@/hooks/useAuth";
+export { useAuth } from "@/contexts/SupabaseAuthContext";
 
 // Types
 export * from "./types";

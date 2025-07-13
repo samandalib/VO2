@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { getProtocolById } from "@/lib/protocols/data";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Activity, Plus, X } from "lucide-react";
@@ -35,7 +35,37 @@ import {
 } from "@/components/dashboard/DashboardProtocolUtils";
 
 export function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading } = useAuth();
+
+  // Fallback: Check localStorage directly if auth context doesn't have user
+  const [localUser, setLocalUser] = useState(null);
+
+  useEffect(() => {
+    if (!user && !loading) {
+      const mockUser = localStorage.getItem("mock_auth_user");
+      if (mockUser) {
+        try {
+          const parsedUser = JSON.parse(mockUser);
+          setLocalUser({
+            id: parsedUser.id,
+            email: parsedUser.email,
+            user_metadata: {
+              name: parsedUser.name,
+              picture: parsedUser.picture,
+            },
+          });
+        } catch (error) {
+          console.error("Error parsing localStorage user:", error);
+        }
+      }
+    } else if (user) {
+      setLocalUser(null);
+    }
+  }, [user, loading]);
+
+  // Use either auth context user or localStorage user
+  const effectiveUser = user || localUser;
+
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [protocolStartDate, setProtocolStartDate] = useState(new Date());
@@ -49,7 +79,8 @@ export function Dashboard() {
     : null;
 
   // Use custom hook for dashboard data
-  const { progressStats, userProgress, isLoading } = useDashboardData(user);
+  const { progressStats, userProgress, isLoading } =
+    useDashboardData(effectiveUser);
 
   const handleSignOut = async () => {
     await signOut();
@@ -80,7 +111,7 @@ export function Dashboard() {
   };
 
   const renderTabContent = () => {
-    if (!user) return null;
+    if (!effectiveUser) return null;
 
     switch (activeTab) {
       case "overview":
@@ -141,20 +172,38 @@ export function Dashboard() {
         );
 
       case "weekly":
-        return <WeeklyTrackingPanel userId={user.id} />;
+        return <WeeklyTrackingPanel userId={effectiveUser.id} />;
 
       case "session":
-        return <SessionMetricsLogging userId={user.id} />;
+        return <SessionMetricsLogging userId={effectiveUser.id} />;
 
       case "biomarkers":
-        return <BloodBiomarkerSection userId={user.id} />;
+        return <BloodBiomarkerSection userId={effectiveUser.id} />;
 
       default:
         return null;
     }
   };
 
-  if (!user) {
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Activity className="w-12 h-12 text-muted-foreground mx-auto mb-4 animate-spin" />
+            <h2 className="text-2xl font-bold text-muted-foreground mb-2">
+              Loading...
+            </h2>
+            <p className="text-muted-foreground">
+              Checking authentication status
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!effectiveUser) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -176,7 +225,7 @@ export function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 dark:from-spotify-gray-900 dark:via-spotify-gray-800 dark:to-spotify-gray-700">
       <DashboardLayout>
         {/* Header */}
-        <DashboardHeader user={user} onSignOut={handleSignOut} />
+        <DashboardHeader user={effectiveUser} onSignOut={handleSignOut} />
 
         {/* Desktop Layout - Show all content */}
         <div className="hidden md:block">
@@ -220,7 +269,7 @@ export function Dashboard() {
           {/* Tracking Sections */}
           <div className="mt-12">
             <TrackingSectionsLayout
-              userId={user.id}
+              userId={effectiveUser.id}
               protocolData={protocolData}
             />
           </div>

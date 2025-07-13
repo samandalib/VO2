@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { VO2MaxData } from "@shared/api";
 import { SimpleAuthModal } from "@/components/auth/SimpleAuthModal";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useNavigate } from "react-router-dom";
 
 interface ExtendedVO2MaxData extends VO2MaxData {
@@ -61,7 +61,7 @@ export function VO2MaxForm({
 
   try {
     const authState = useAuth();
-    isAuthenticated = authState.isAuthenticated;
+    isAuthenticated = !!authState.user;
   } catch (error) {
     console.error("Auth hooks error:", error);
   }
@@ -1028,7 +1028,7 @@ export function VO2MaxForm({
                 <div className="space-y-3">
                   <Label className="text-base font-semibold flex items-center gap-2">
                     Q4. What is your current VO₂max? (Required)
-                    <InfoTooltip content="Baseline VO₂max helps set training intensity zones and predict improvement potential.">
+                    <InfoTooltip content="Baseline VO���max helps set training intensity zones and predict improvement potential.">
                       <Info className="w-4 h-4 text-green-600 cursor-help" />
                     </InfoTooltip>
                   </Label>

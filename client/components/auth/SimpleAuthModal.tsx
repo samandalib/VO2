@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Shield, Zap, Target, X } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 interface SimpleAuthModalProps {
   isOpen: boolean;
@@ -18,9 +18,10 @@ export function SimpleAuthModal({
   title = "Sign in to continue",
   description = "Create your personalized training plan",
 }: SimpleAuthModalProps) {
-  const { signInWithGoogle, isLoading, error, clearError, isAuthenticated } =
-    useAuth();
+  const { signInWithGoogle, loading, user } = useAuth();
+  const [error, setError] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const isAuthenticated = !!user;
 
   // Close modal and call success callback when user becomes authenticated
   useEffect(() => {
@@ -33,43 +34,33 @@ export function SimpleAuthModal({
   // Clear error when modal opens
   useEffect(() => {
     if (isOpen) {
-      clearError();
+      setError(null);
     }
-  }, [isOpen, clearError]);
+  }, [isOpen]);
 
   const handleGoogleSignIn = async () => {
     console.log("Google sign-in button clicked");
     setIsSigningIn(true);
+    setError(null);
 
     try {
-      await signInWithGoogle();
-      console.log("Google sign-in successful");
+      const { error } = await signInWithGoogle();
+      if (error) {
+        setError(error.message || "Sign in failed");
+      } else {
+        console.log("Google sign-in successful");
+      }
     } catch (error) {
       console.error("Sign in failed:", error);
-      // If FedCM fails, try rendering button as fallback
-      if (error instanceof Error && error.message.includes("FedCM")) {
-        console.log("FedCM failed, trying button fallback");
-        const buttonElement = document.getElementById("google-signin-button");
-        if (buttonElement && window.google) {
-          buttonElement.style.display = "block";
-          window.google.accounts.id.renderButton(buttonElement, {
-            theme: "outline",
-            size: "large",
-            type: "standard",
-            text: "signin_with",
-            shape: "rectangular",
-            logo_alignment: "left",
-          });
-        }
-      }
+      setError(error instanceof Error ? error.message : "Sign in failed");
     } finally {
       setIsSigningIn(false);
     }
   };
 
   const handleClose = () => {
-    if (!isLoading && !isSigningIn) {
-      clearError();
+    if (!loading && !isSigningIn) {
+      setError(null);
       onClose();
     }
   };
@@ -262,8 +253,8 @@ export function SimpleAuthModal({
           </div>
         )}
 
-        {/* Prioritize Mock Sign In if Google OAuth has issues */}
-        {error && error.includes("not configured") ? (
+        {/* Prioritize Mock Sign In if Google OAuth has issues (development only) */}
+        {(error && error.includes("not configured")) || import.meta.env.DEV ? (
           <>
             {/* Mock Sign In - Primary option when Google OAuth unavailable */}
             <Button
@@ -283,8 +274,11 @@ export function SimpleAuthModal({
                   "mock_auth_user",
                   JSON.stringify(mockUser),
                 );
+                console.log("✅ Demo account saved to localStorage");
                 onSuccess?.();
                 onClose();
+                // Navigate directly to dashboard instead of reloading
+                window.location.href = "/dashboard";
               }}
               style={{
                 width: "100%",
@@ -309,7 +303,7 @@ export function SimpleAuthModal({
             {/* Google Sign In - Secondary option */}
             <Button
               onClick={handleGoogleSignIn}
-              disabled={isLoading || isSigningIn}
+              disabled={loading || isSigningIn}
               style={{
                 width: "100%",
                 height: "48px",
@@ -336,7 +330,7 @@ export function SimpleAuthModal({
             {/* Google Sign In - Primary option when available */}
             <Button
               onClick={handleGoogleSignIn}
-              disabled={isLoading || isSigningIn}
+              disabled={loading || isSigningIn}
               style={{
                 width: "100%",
                 height: "48px",
@@ -350,8 +344,8 @@ export function SimpleAuthModal({
                 fontSize: "14px",
                 fontWeight: "500",
                 color: "#374151",
-                cursor: isLoading || isSigningIn ? "not-allowed" : "pointer",
-                opacity: isLoading || isSigningIn ? 0.6 : 1,
+                cursor: loading || isSigningIn ? "not-allowed" : "pointer",
+                opacity: loading || isSigningIn ? 0.6 : 1,
                 marginBottom: "12px",
               }}
             >
@@ -369,45 +363,50 @@ export function SimpleAuthModal({
               {isSigningIn ? "Signing in..." : "Continue with Google"}
             </Button>
 
-            {/* Mock Sign In - Alternative option */}
-            <Button
-              onClick={() => {
-                console.log("Mock sign-in clicked");
-                const mockUser = {
-                  id: "mock-user-123",
-                  email: "test@example.com",
-                  name: "Test User",
-                  picture: "https://via.placeholder.com/40",
-                  provider: "google" as const,
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                };
+            {/* Mock Sign In - Alternative option (development only) */}
+            {import.meta.env.DEV && (
+              <Button
+                onClick={() => {
+                  console.log("Mock sign-in clicked");
+                  const mockUser = {
+                    id: "mock-user-123",
+                    email: "test@example.com",
+                    name: "Test User",
+                    picture: "https://via.placeholder.com/40",
+                    provider: "google" as const,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                  };
 
-                localStorage.setItem(
-                  "mock_auth_user",
-                  JSON.stringify(mockUser),
-                );
-                onSuccess?.();
-                onClose();
-              }}
-              style={{
-                width: "100%",
-                height: "48px",
-                backgroundColor: "#f59e0b",
-                border: "none",
-                borderRadius: "8px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "12px",
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "white",
-                cursor: "pointer",
-              }}
-            >
-              🚀 Or Use Demo Account
-            </Button>
+                  localStorage.setItem(
+                    "mock_auth_user",
+                    JSON.stringify(mockUser),
+                  );
+                  console.log("✅ Demo account saved to localStorage");
+                  onSuccess?.();
+                  onClose();
+                  // Navigate directly to dashboard instead of reloading
+                  window.location.href = "/dashboard";
+                }}
+                style={{
+                  width: "100%",
+                  height: "48px",
+                  backgroundColor: "#f59e0b",
+                  border: "none",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "12px",
+                  fontSize: "14px",
+                  fontWeight: "500",
+                  color: "white",
+                  cursor: "pointer",
+                }}
+              >
+                ���� Or Use Demo Account
+              </Button>
+            )}
           </>
         )}
 

@@ -33,19 +33,7 @@
     "test:auth": "tsx scripts/test-auth-system.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.11.1",
-    "@types/bcryptjs": "^2.4.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/nodemailer": "^6.4.17",
-    "bcryptjs": "^3.0.2",
-    "dotenv": "^17.2.0",
-    "express": "^4.18.2",
-    "express-rate-limit": "^7.5.1",
-    "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^7.0.5",
-    "openai": "^5.8.3",
-    "prisma": "^6.11.1",
+    "@supabase/supabase-js": "^2.39.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
