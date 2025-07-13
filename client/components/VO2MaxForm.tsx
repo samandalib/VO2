@@ -8,7 +8,7 @@ import {
   Activity,
   Heart,
   User,
-  Weight,
+  Scale,  // Changed from Weight to Scale
   Ruler,
   TrendingUp,
   ArrowLeft,
