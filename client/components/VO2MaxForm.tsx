@@ -985,7 +985,7 @@ export function VO2MaxForm({
                           className="flex items-center gap-2 mb-2"
                         >
                           <Weight className="w-4 h-4" />
-                          Weight (kg)
+                          Body Weight (kg)
                         </Label>
                         <Input
                           id="weight"
