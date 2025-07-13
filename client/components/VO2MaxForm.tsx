@@ -8,7 +8,7 @@ import {
   Activity,
   Heart,
   User,
-  Scale,  // FIX! Changed from Weight to Scale
+  Scale,
   Ruler,
   TrendingUp,
   ArrowLeft,
@@ -984,8 +984,8 @@ export function VO2MaxForm({
                           htmlFor="weight"
                           className="flex items-center gap-2 mb-2"
                         >
-                          <Weight className="w-4 h-4" />
-                          Body Weight (kg)
+                          <Scale className="w-4 h-4" />
+                          Weight (kg)
                         </Label>
                         <Input
                           id="weight"
