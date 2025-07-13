@@ -1,0 +1,33 @@
+# Git Commands to Connect Your Project to GitHub
+# Copy and paste these commands one by one
+
+# 1. Check current git status
+git status
+
+# 2. Remove any existing remote origin
+git remote remove origin
+
+# 3. Add your GitHub repository as origin
+git remote add origin https://github.com/samandalib/vo2max-training-app.git
+
+# 4. Verify the connection
+git remote -v
+
+# 5. Check what files will be uploaded (IMPORTANT: .env should NOT be listed!)
+git status
+
+# 6. Add all files (except .env which is ignored)
+git add .
+
+# 7. Commit with a message
+git commit -m "Initial commit - VO2Max training app"
+
+# 8. Push to GitHub
+git push -u origin main
+
+# If step 8 fails with "no upstream branch", try:
+git push --set-upstream origin main
+
+# IMPORTANT SECURITY CHECK:
+# Before running git add ., make sure git status does NOT show .env file!
+# If you see .env in the list, STOP and ask for help!

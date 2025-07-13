@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String   @id @default(cuid())
+  email                 String   @unique
+  name                  String?
+  password              String?  // For email/password auth
+  provider              String   @default("email") // "email" or "google"
+  googleId              String?  // Google user ID
+  picture               String?  // Profile picture URL
+  emailVerified         Boolean  @default(false)
+  emailVerificationToken String?
+  emailVerificationExpiry DateTime?
+  passwordResetToken    String?
+  passwordResetExpiry   DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // User's fitness data
+  weeklyMetrics    WeeklyMetrics[]
+  sessionMetrics   SessionMetrics[]
+  biomarkers       Biomarker[]
+  userProtocols    UserProtocol[]
+
+  @@map("users")
+}
+
+model WeeklyMetrics {
+  id               String   @id @default(cuid())
+  userId           String
+  date             DateTime
+  restingHeartRate Int?
+  vo2max           Float?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("weekly_metrics")
+}
+
+model SessionMetrics {
+  id          String   @id @default(cuid())
+  userId      String
+  date        DateTime
+  maxHR       Int?
+  avgHR       Int?
+  sessionType String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session_metrics")
+}
+
+model Biomarker {
+  id         String   @id @default(cuid())
+  userId     String
+  date       DateTime
+  hemoglobin Float?
+  ferritin   Float?
+  crp        Float?
+  glucose    Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("biomarkers")
+}
+
+model Protocol {
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  vo2maxGain          String
+  timeToResults       String
+  protocolDuration    String
+  fitnessLevel        String
+  sportModality       String
+  researchPopulation  String
+  researchers         String
+  institution         String
+  location            String
+  year                String
+  doi                 String
+  description         String?
+  howToPerform        String?
+  intensityControl    String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  userProtocols UserProtocol[]
+
+  @@map("protocols")
+}
+
+model UserProtocol {
+  id         String    @id @default(cuid())
+  userId     String
+  protocolId String
+  startDate  DateTime
+  endDate    DateTime?
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  protocol Protocol @relation(fields: [protocolId], references: [id])
+
+  @@map("user_protocols")
+}

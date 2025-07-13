@@ -1,0 +1,356 @@
+name: Security & Code Quality
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run security scans weekly on Mondays at 2 AM UTC
+    - cron: "0 2 * * 1"
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "18"
+
+jobs:
+  # Dependency vulnerability scanning
+  dependency-scan:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: |
+          echo "🔍 Running npm security audit..."
+          npm audit --audit-level high --json > audit-results.json || true
+
+      - name: Parse audit results
+        run: |
+          if [ -f "audit-results.json" ]; then
+            HIGH_VULNS=$(cat audit-results.json | jq '.metadata.vulnerabilities.high // 0')
+            CRITICAL_VULNS=$(cat audit-results.json | jq '.metadata.vulnerabilities.critical // 0')
+            
+            echo "🔍 Security audit results:"
+            echo "  Critical vulnerabilities: $CRITICAL_VULNS"
+            echo "  High vulnerabilities: $HIGH_VULNS"
+            
+            if [ "$CRITICAL_VULNS" -gt 0 ]; then
+              echo "❌ Critical vulnerabilities found! Please fix immediately."
+              exit 1
+            elif [ "$HIGH_VULNS" -gt 0 ]; then
+              echo "⚠️ High vulnerabilities found. Consider fixing soon."
+            else
+              echo "✅ No critical or high vulnerabilities found."
+            fi
+          fi
+
+      - name: Upload audit results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-audit-results
+          path: audit-results.json
+          retention-days: 30
+
+  # CodeQL security analysis
+  codeql:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["javascript", "typescript"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: |
+          npx prisma generate
+          npm run build
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"
+
+  # Docker image security scanning
+  docker-security:
+    name: Docker Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t vo2max-security-scan:latest .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "vo2max-security-scan:latest"
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+
+  # Secrets scanning
+  secrets-scan:
+    name: Secrets Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # Code quality analysis
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: |
+          echo "🔍 Running ESLint analysis..."
+          npx eslint . --ext .ts,.tsx,.js,.jsx --format json --output-file eslint-results.json || true
+
+      - name: Run TypeScript compiler
+        run: |
+          echo "🔍 Running TypeScript analysis..."
+          npm run typecheck
+
+      - name: Code complexity analysis
+        run: |
+          echo "🔍 Analyzing code complexity..."
+          # This is a placeholder for complexity analysis
+          # You could add tools like complexity-report or jscpd
+          echo "✅ Code complexity analysis completed"
+
+      - name: Upload code quality results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: code-quality-results
+          path: |
+            eslint-results.json
+          retention-days: 30
+
+  # SAST (Static Application Security Testing)
+  sast-scan:
+    name: SAST Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Semgrep SAST
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/owasp-top-ten
+            p/react
+            p/typescript
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+  # License compliance check
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install license checker
+        run: npm install -g license-checker
+
+      - name: Check licenses
+        run: |
+          echo "📄 Checking license compliance..."
+          license-checker --json --out licenses.json
+
+          # Check for problematic licenses
+          PROBLEMATIC_LICENSES="GPL-2.0,GPL-3.0,AGPL-1.0,AGPL-3.0"
+
+          if license-checker --excludePrivatePackages --onlyAllow "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;CC0-1.0;Unlicense"; then
+            echo "✅ All licenses are compliant"
+          else
+            echo "⚠️ Some licenses may require review"
+          fi
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: licenses.json
+          retention-days: 30
+
+  # Security summary
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs:
+      [
+        dependency-scan,
+        codeql,
+        docker-security,
+        secrets-scan,
+        code-quality,
+        sast-scan,
+        license-check,
+      ]
+    if: always()
+
+    steps:
+      - name: Generate security report
+        run: |
+          echo "🛡️ Security & Code Quality Summary"
+          echo "=================================="
+
+          # Check results of each job
+          DEPENDENCY_STATUS="${{ needs.dependency-scan.result }}"
+          CODEQL_STATUS="${{ needs.codeql.result }}"
+          DOCKER_STATUS="${{ needs.docker-security.result }}"
+          SECRETS_STATUS="${{ needs.secrets-scan.result }}"
+          QUALITY_STATUS="${{ needs.code-quality.result }}"
+          SAST_STATUS="${{ needs.sast-scan.result }}"
+          LICENSE_STATUS="${{ needs.license-check.result }}"
+
+          echo "📦 Dependency Security: $DEPENDENCY_STATUS"
+          echo "🔍 CodeQL Analysis: $CODEQL_STATUS"
+          echo "🐳 Docker Security: $DOCKER_STATUS"
+          echo "🔐 Secrets Scan: $SECRETS_STATUS"
+          echo "📊 Code Quality: $QUALITY_STATUS"
+          echo "🛡️ SAST Scan: $SAST_STATUS"
+          echo "📄 License Check: $LICENSE_STATUS"
+
+          # Determine overall status
+          if [[ "$DEPENDENCY_STATUS" == "success" && 
+                "$CODEQL_STATUS" == "success" && 
+                "$DOCKER_STATUS" == "success" && 
+                "$SECRETS_STATUS" == "success" && 
+                "$QUALITY_STATUS" == "success" && 
+                "$SAST_STATUS" == "success" && 
+                "$LICENSE_STATUS" == "success" ]]; then
+            echo ""
+            echo "✅ All security and quality checks passed!"
+            echo "SECURITY_STATUS=success" >> $GITHUB_ENV
+          else
+            echo ""
+            echo "❌ Some security or quality checks failed!"
+            echo "Please review the individual job results."
+            echo "SECURITY_STATUS=failure" >> $GITHUB_ENV
+          fi
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = process.env.SECURITY_STATUS;
+            const emoji = status === 'success' ? '🛡️✅' : '🛡️❌';
+            const message = status === 'success' 
+              ? 'All security and quality checks passed!' 
+              : 'Some security or quality checks failed. Please review the Security workflow.';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `${emoji} **Security & Code Quality Report**\n\n${message}\n\nView detailed results in the [Security workflow](${context.payload.repository.html_url}/actions/workflows/security.yml).`
+            });

@@ -1,0 +1,25 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm run build"
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+[environments.staging]
+[environments.staging.variables]
+NODE_ENV = "staging"
+PORT = "3000"
+
+[environments.production]
+[environments.production.variables]
+NODE_ENV = "production"
+PORT = "3000"
+
+# Database configuration will be handled via Railway PostgreSQL service
+# Environment variables will be automatically injected:
+# - DATABASE_URL
+# - DATABASE_PRIVATE_URL

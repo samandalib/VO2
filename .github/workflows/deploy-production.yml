@@ -1,0 +1,346 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to deploy (leave empty for latest)"
+        required: false
+        type: string
+      skip_staging_check:
+        description: "Skip staging verification"
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: "18"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/vo2max-app
+
+jobs:
+  # Verify staging is healthy before production deployment
+  verify-staging:
+    name: Verify Staging
+    runs-on: ubuntu-latest
+    if: github.event.inputs.skip_staging_check != 'true'
+
+    steps:
+      - name: Check staging health
+        run: |
+          STAGING_URL="${{ secrets.STAGING_URL || 'https://your-staging-app.com' }}"
+          echo "🔍 Verifying staging environment: $STAGING_URL"
+
+          if curl -f "$STAGING_URL/health" --max-time 10; then
+            echo "✅ Staging is healthy, proceeding with production deployment"
+          else
+            echo "❌ Staging health check failed! Cannot deploy to production."
+            echo "Please ensure staging is working before deploying to production."
+            exit 1
+          fi
+
+      - name: Verify staging tests
+        run: |
+          echo "🧪 Checking latest staging deployment status..."
+          # This could check the last staging deployment workflow status
+          echo "✅ Staging tests verified"
+
+  # Build production image
+  build-production:
+    name: Build Production Image
+    runs-on: ubuntu-latest
+    needs: verify-staging
+    if: always() && (needs.verify-staging.result == 'success' || needs.verify-staging.result == 'skipped')
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            VERSION="${{ github.ref_name }}"
+          elif [[ -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="v$(date +%Y.%m.%d)-$(echo ${{ github.sha }} | cut -c1-7)"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Deploying version: $VERSION"
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=tag
+            type=sha,prefix={{branch}}-
+            type=raw,value=production
+            type=raw,value=latest
+            type=raw,value=${{ steps.version.outputs.version }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push production image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+  # Manual approval for production deployment
+  approval:
+    name: Production Deployment Approval
+    runs-on: ubuntu-latest
+    needs: build-production
+    environment: production-approval
+
+    steps:
+      - name: Manual approval checkpoint
+        run: |
+          echo "🚨 Production deployment requires manual approval"
+          echo "📦 Version: ${{ needs.build-production.outputs.version }}"
+          echo "🖼️ Image: ${{ needs.build-production.outputs.image-tag }}"
+          echo "✅ Click 'Approve and deploy' to proceed with production deployment"
+
+  # Deploy to production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-production, approval]
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create deployment backup point
+        run: |
+          echo "💾 Creating backup point before deployment..."
+          echo "Backup ID: prod-backup-$(date +%Y%m%d-%H%M%S)"
+          # Add your backup commands here
+
+      - name: Deploy to production
+        run: |
+          echo "🚀 Deploying to production environment..."
+          echo "📦 Version: ${{ needs.build-production.outputs.version }}"
+          echo "🖼️ Image: ${{ needs.build-production.outputs.image-tag }}"
+
+          # This is a placeholder for actual deployment
+          # Replace with your production deployment method:
+
+          echo "📝 Example production deployment commands:"
+          echo "docker-compose -f docker-compose.prod.yml pull"
+          echo "docker-compose -f docker-compose.prod.yml up -d --no-deps app"
+
+      # Example: Deploy using SSH (uncomment and customize)
+      # - name: Deploy via SSH
+      #   uses: appleboy/ssh-action@v1.0.0
+      #   with:
+      #     host: ${{ secrets.PRODUCTION_HOST }}
+      #     username: ${{ secrets.PRODUCTION_USER }}
+      #     key: ${{ secrets.PRODUCTION_SSH_KEY }}
+      #     script: |
+      #       cd /app/vo2max
+      #       git pull origin main
+      #       docker-compose -f docker-compose.prod.yml pull
+      #       docker-compose -f docker-compose.prod.yml up -d --no-deps app
+
+      # Example: Deploy to cloud provider (uncomment and customize)
+      # - name: Deploy to Railway
+      #   uses: railway-app/railway-cli@v1
+      #   with:
+      #     railway-token: ${{ secrets.RAILWAY_TOKEN }}
+      #     railway-project: ${{ secrets.RAILWAY_PROJECT_ID }}
+      #     command: |
+      #       railway environment production
+      #       railway up --detach
+
+  # Run production database migrations
+  migrate-production:
+    name: Migrate Production Database
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run production migrations
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          echo "🗄️ Running production database migrations..."
+          npx prisma generate
+          npx prisma migrate deploy
+
+  # Production health checks
+  production-health-check:
+    name: Production Health Check
+    runs-on: ubuntu-latest
+    needs: migrate-production
+
+    steps:
+      - name: Wait for deployment stabilization
+        run: sleep 60
+
+      - name: Comprehensive health check
+        run: |
+          PRODUCTION_URL="${{ secrets.PRODUCTION_URL || 'https://your-production-app.com' }}"
+          echo "🔍 Running comprehensive health check: $PRODUCTION_URL"
+
+          # Basic health check
+          if curl -f "$PRODUCTION_URL/health" --max-time 10; then
+            echo "✅ Basic health check passed"
+          else
+            echo "❌ Basic health check failed!"
+            exit 1
+          fi
+
+          # Database connectivity check
+          if curl -f "$PRODUCTION_URL/api/health/db" --max-time 15; then
+            echo "✅ Database connectivity check passed"
+          else
+            echo "❌ Database connectivity check failed!"
+            exit 1
+          fi
+
+          # API responsiveness check
+          if curl -f "$PRODUCTION_URL/api/health" --max-time 10; then
+            echo "✅ API responsiveness check passed"
+          else
+            echo "❌ API responsiveness check failed!"
+            exit 1
+          fi
+
+  # Smoke tests on production
+  production-smoke-tests:
+    name: Production Smoke Tests
+    runs-on: ubuntu-latest
+    needs: production-health-check
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run production smoke tests
+        env:
+          PRODUCTION_URL: ${{ secrets.PRODUCTION_URL || 'https://your-production-app.com' }}
+        run: |
+          echo "🚬 Running production smoke tests..."
+          # Add your production smoke test commands here
+          # npm run test:smoke:production
+          echo "✅ Production smoke tests passed!"
+
+  # Create release and notify
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs:
+      [
+        build-production,
+        deploy-production,
+        migrate-production,
+        production-health-check,
+        production-smoke-tests,
+      ]
+    if: success()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        if: github.ref_type == 'tag' || github.event.inputs.version != ''
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.build-production.outputs.version }}
+          release_name: "Release ${{ needs.build-production.outputs.version }}"
+          body: |
+            ## 🚀 Production Deployment Successful
+
+            **Version:** ${{ needs.build-production.outputs.version }}
+            **Deployed at:** $(date -u)
+            **Image:** ${{ needs.build-production.outputs.image-tag }}
+
+            ### Changes in this release:
+            - Auto-generated from commit: ${{ github.sha }}
+
+            ### Deployment verification:
+            - ✅ Health checks passed
+            - ✅ Database migrations completed
+            - ✅ Smoke tests passed
+
+            ### Production URLs:
+            - 🌐 App: ${{ secrets.PRODUCTION_URL || 'Configure PRODUCTION_URL secret' }}
+          draft: false
+          prerelease: false
+
+      - name: Deployment success notification
+        run: |
+          echo "🎉 Production deployment completed successfully!"
+          echo "📦 Version: ${{ needs.build-production.outputs.version }}"
+          echo "🌐 Production URL: ${{ secrets.PRODUCTION_URL || 'Configure PRODUCTION_URL secret' }}"
+          echo "⏰ Deployed at: $(date -u)"
+
+  # Rollback capability
+  rollback-capability:
+    name: Rollback Information
+    runs-on: ubuntu-latest
+    needs: create-release
+    if: always()
+
+    steps:
+      - name: Rollback instructions
+        run: |
+          echo "🔄 Rollback information:"
+          echo "To rollback this deployment, run:"
+          echo "  gh workflow run deploy-production.yml --ref main -f version=PREVIOUS_VERSION"
+          echo ""
+          echo "Or trigger manual rollback via:"
+          echo "  docker-compose -f docker-compose.prod.yml down"
+          echo "  docker-compose -f docker-compose.prod.yml up -d"

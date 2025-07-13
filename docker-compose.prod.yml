@@ -1,0 +1,95 @@
+version: "3.8"
+
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: vo2max_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_DB: vo2max_production
+      POSTGRES_USER: prod_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    ports:
+      - "5434:5432" # Internal port, not exposed publicly
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ./backups:/var/backups
+    secrets:
+      - postgres_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prod_user -d vo2max_production"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vo2max_app_prod
+    restart: always
+    env_file:
+      - .env.production
+    environment:
+      - DATABASE_URL=postgresql://prod_user:secure_prod_password@postgres:5432/vo2max_production
+    expose:
+      - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Nginx reverse proxy with SSL
+  nginx:
+    image: nginx:alpine
+    container_name: vo2max_nginx_prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/production.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - app
+
+  # Optional: Database backup service
+  db-backup:
+    image: postgres:15-alpine
+    container_name: vo2max_backup_prod
+    restart: "no"
+    environment:
+      PGPASSWORD_FILE: /run/secrets/postgres_password
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    secrets:
+      - postgres_password
+    command: /backup.sh
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_prod_data:
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+
+networks:
+  default:
+    name: vo2max_prod_network
+    driver: bridge

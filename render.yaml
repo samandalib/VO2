@@ -1,0 +1,65 @@
+# Alternative hosting option - Render.com configuration
+# Use this if you prefer Render over Railway + Vercel
+
+services:
+  # Backend API Service
+  - type: web
+    name: vo2max-api
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vo2max-database
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SENTRY_DSN
+        sync: false
+    autoDeploy: true
+    branch: main
+
+  # Frontend Static Site
+  - type: static
+    name: vo2max-frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist/spa
+    pullRequestPreviewsEnabled: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_API_URL
+        value: https://vo2max-api.onrender.com
+      - key: VITE_APP_ENV
+        value: production
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+    routes:
+      - type: redirect
+        source: /*
+        destination: /index.html
+    autoDeploy: true
+    branch: main
+
+# Database
+databases:
+  - name: vo2max-database
+    databaseName: vo2max_production
+    user: vo2max_user
+    plan: starter
+    ipAllowList: []

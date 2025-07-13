@@ -1,0 +1,68 @@
+version: "3.8"
+
+services:
+  # Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: vo2max_postgres_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vo2max_dev
+      POSTGRES_USER: vo2max_user
+      POSTGRES_PASSWORD: vo2max_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./prisma/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vo2max_user -d vo2max_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for sessions/caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: vo2max_redis_dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Application (for containerized development)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vo2max_app_dev
+    restart: unless-stopped
+    env_file:
+      - .env.development
+    environment:
+      - DATABASE_URL=postgresql://vo2max_user:vo2max_password@postgres:5432/vo2max_dev
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Mount source code for development (if needed)
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+
+networks:
+  default:
+    name: vo2max_dev_network
