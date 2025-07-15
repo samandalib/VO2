@@ -6,7 +6,7 @@ import { FeaturesSection } from "@/components/sections/FeaturesSection";
 import { TestingProtocolsSection } from "@/components/sections/TestingProtocolsSection";
 import { TrainingProtocolsSection } from "@/components/sections/TrainingProtocolsSection";
 import { VO2MaxCalculatorSection } from "@/components/sections/VO2MaxCalculatorSection";
-import { SimpleAuthModal } from "@/components/auth/SimpleAuthModal";
+import { AuthModal } from "@/components/auth/AuthModal";
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import { VO2MaxData } from "@shared/api";
 
@@ -371,7 +371,7 @@ export default function Index() {
       </div>
       <FeaturesSection />
       <TrainingProtocolsSection onStartAssessment={handleStartAssessment} />
-      <SimpleAuthModal
+      <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={handleAuthSuccess}
