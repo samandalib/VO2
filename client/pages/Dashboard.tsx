@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { supabase } from "@/lib/supabase";
 import { getProtocolById } from "@/lib/protocols/data";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Activity, Plus, X } from "lucide-react";
@@ -39,6 +40,68 @@ export function Dashboard() {
 
   // Fallback: Check localStorage directly if auth context doesn't have user
   const [localUser, setLocalUser] = useState(null);
+  const [profileChecked, setProfileChecked] = useState(false);
+
+  // Check and ensure user profile exists in database
+  useEffect(() => {
+    const ensureUserProfile = async () => {
+      const currentUser = user || localUser;
+      if (currentUser && !profileChecked) {
+        console.log(
+          "🔍 Dashboard: Ensuring user profile exists for:",
+          currentUser.id,
+        );
+
+        try {
+          const { data: existingProfile, error: selectError } = await supabase
+            .from("user_profiles")
+            .select("*")
+            .eq("id", currentUser.id)
+            .single();
+
+          if (selectError && selectError.code !== "PGRST116") {
+            console.error(
+              "❌ Dashboard: Error checking user profile:",
+              selectError,
+            );
+          }
+
+          if (!existingProfile && selectError?.code === "PGRST116") {
+            console.log("➕ Dashboard: Creating missing user profile");
+
+            const { error: insertError } = await supabase
+              .from("user_profiles")
+              .insert([
+                {
+                  id: currentUser.id,
+                  email: currentUser.email || currentUser.user_metadata?.email,
+                  name: currentUser.user_metadata?.name || currentUser.name,
+                  picture:
+                    currentUser.user_metadata?.picture || currentUser.picture,
+                },
+              ]);
+
+            if (insertError) {
+              console.error(
+                "❌ Dashboard: Error creating user profile:",
+                insertError,
+              );
+            } else {
+              console.log("✅ Dashboard: User profile created successfully");
+            }
+          } else if (existingProfile) {
+            console.log("✅ Dashboard: User profile already exists");
+          }
+        } catch (error) {
+          console.error("❌ Dashboard: Error in ensureUserProfile:", error);
+        }
+
+        setProfileChecked(true);
+      }
+    };
+
+    ensureUserProfile();
+  }, [user, localUser, profileChecked]);
 
   useEffect(() => {
     if (!user && !loading) {
