@@ -9,6 +9,8 @@ import { VO2MaxCalculatorSection } from "@/components/sections/VO2MaxCalculatorS
 import { AuthModal } from "@/components/auth/AuthModal";
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import { VO2MaxData } from "@shared/api";
+import { DatabaseConnectionTest } from "@/components/debug/DatabaseConnectionTest";
+
 
 export default function Index() {
   const navigate = useNavigate();
