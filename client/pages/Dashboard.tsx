@@ -47,6 +47,16 @@ export function Dashboard() {
     const ensureUserProfile = async () => {
       const currentUser = user || localUser;
       if (currentUser && !profileChecked) {
+        // Skip database operations in demo mode
+        const isDemoMode =
+          import.meta.env.DEV &&
+          localStorage.getItem("mock_auth_user") !== null;
+        if (isDemoMode) {
+          console.log("🚀 Demo mode: Skipping user profile database check");
+          setProfileChecked(true);
+          return;
+        }
+
         console.log(
           "🔍 Dashboard: Ensuring user profile exists for:",
           currentUser.id,
@@ -60,10 +70,12 @@ export function Dashboard() {
             .single();
 
           if (selectError && selectError.code !== "PGRST116") {
-            console.error(
-              "❌ Dashboard: Error checking user profile:",
-              selectError,
-            );
+            console.error("❌ Dashboard: Error checking user profile:");
+            console.error("Message:", selectError.message);
+            console.error("Code:", selectError.code);
+            console.error("Details:", selectError.details);
+            console.error("Hint:", selectError.hint);
+            console.error("Full error:", JSON.stringify(selectError, null, 2));
           }
 
           if (!existingProfile && selectError?.code === "PGRST116") {
@@ -82,9 +94,14 @@ export function Dashboard() {
               ]);
 
             if (insertError) {
+              console.error("❌ Dashboard: Error creating user profile:");
+              console.error("Message:", insertError.message);
+              console.error("Code:", insertError.code);
+              console.error("Details:", insertError.details);
+              console.error("Hint:", insertError.hint);
               console.error(
-                "❌ Dashboard: Error creating user profile:",
-                insertError,
+                "Full error:",
+                JSON.stringify(insertError, null, 2),
               );
             } else {
               console.log("✅ Dashboard: User profile created successfully");
@@ -101,7 +118,7 @@ export function Dashboard() {
     };
 
     ensureUserProfile();
-  }, [user, localUser, profileChecked]);
+  }, [user, localUser]);
 
   useEffect(() => {
     if (!user && !loading) {
