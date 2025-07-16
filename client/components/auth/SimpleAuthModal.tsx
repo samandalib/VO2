@@ -345,7 +345,6 @@ export function SimpleAuthModal({
                 fontSize: "14px",
                 fontWeight: "500",
                 color: "#374151",
-                cursor: loading || isSigningIn ? "not-allowed" : "pointer",
                 opacity: loading || isSigningIn ? 0.6 : 1,
                 marginBottom: "12px",
               }}
