@@ -128,6 +128,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     checkAuth();
 
+    // Listen for auth changes from Supabase
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("🔔 Auth state changed:", {
+        event,
+        session: session?.user?.id,
+        email: session?.user?.email,
+      });
+
+      setUser(session?.user ?? null);
+
+      // Create user profile if it doesn't exist (for real users, not demo)
+      if (
+        session?.user &&
+        (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") &&
+        !localStorage.getItem("mock_auth_user")
+      ) {
+        console.log("🎯 Creating user profile for authenticated user");
+        await ensureUserProfileExists(session.user);
+      }
+
+      setLoading(false);
+    });
+
     // Also listen for localStorage changes (for demo accounts)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "mock_auth_user") {
@@ -148,32 +173,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 1000);
 
     return () => {
+      subscription.unsubscribe();
       window.removeEventListener("storage", handleStorageChange);
       clearInterval(intervalId);
     };
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("🔔 Auth state changed:", {
-        event,
-        session: session?.user?.id,
-      });
-      setUser(session?.user ?? null);
-
-      // Create user profile if it doesn't exist
-      if (
-        session?.user &&
-        (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")
-      ) {
-        await ensureUserProfileExists(session.user);
-      }
-
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -209,7 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/dashboard`,
       },
     });
 
