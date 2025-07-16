@@ -22,7 +22,7 @@ export function useWeeklyMetrics() {
       const { data: metrics, error } = await supabase
         .from("weekly_metrics")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("userId", user.id) // Updated to match schema
         .order("date", { ascending: false });
 
       if (!error) {
@@ -42,7 +42,7 @@ export function useWeeklyMetrics() {
           event: "*",
           schema: "public",
           table: "weekly_metrics",
-          filter: `user_id=eq.${user.id}`,
+          filter: `userId=eq.${user.id}`, // Updated to match schema
         },
         () => {
           fetchData();
@@ -58,7 +58,7 @@ export function useWeeklyMetrics() {
   const addWeeklyMetrics = async (
     metrics: Omit<
       WeeklyMetrics,
-      "id" | "user_id" | "created_at" | "updated_at"
+      "id" | "userId" | "createdAt" | "updatedAt" // Updated to match schema
     >,
   ) => {
     if (!user) return { error: "Not authenticated" };
@@ -66,7 +66,7 @@ export function useWeeklyMetrics() {
     const { error } = await supabase.from("weekly_metrics").insert([
       {
         ...metrics,
-        user_id: user.id,
+        userId: user.id, // Updated to match schema
       },
     ]);
 
@@ -89,7 +89,7 @@ export function useSessionMetrics() {
       const { data: metrics, error } = await supabase
         .from("session_metrics")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("userId", user.id) // Updated to match schema
         .order("date", { ascending: false });
 
       if (!error) {
@@ -109,7 +109,7 @@ export function useSessionMetrics() {
           event: "*",
           schema: "public",
           table: "session_metrics",
-          filter: `user_id=eq.${user.id}`,
+          filter: `userId=eq.${user.id}`, // Updated to match schema
         },
         () => {
           fetchData();
@@ -125,7 +125,7 @@ export function useSessionMetrics() {
   const addSessionMetrics = async (
     metrics: Omit<
       SessionMetrics,
-      "id" | "user_id" | "created_at" | "updated_at"
+      "id" | "userId" | "createdAt" | "updatedAt" // Updated to match schema
     >,
   ) => {
     if (!user) return { error: "Not authenticated" };
@@ -133,7 +133,7 @@ export function useSessionMetrics() {
     const { error } = await supabase.from("session_metrics").insert([
       {
         ...metrics,
-        user_id: user.id,
+        userId: user.id, // Updated to match schema
       },
     ]);
 
@@ -156,7 +156,7 @@ export function useBiomarkers() {
       const { data: biomarkers, error } = await supabase
         .from("biomarkers")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("userId", user.id) // Updated to match schema
         .order("date", { ascending: false });
 
       if (!error) {
@@ -176,7 +176,7 @@ export function useBiomarkers() {
           event: "*",
           schema: "public",
           table: "biomarkers",
-          filter: `user_id=eq.${user.id}`,
+          filter: `userId=eq.${user.id}`, // Updated to match schema
         },
         () => {
           fetchData();
@@ -190,14 +190,14 @@ export function useBiomarkers() {
   }, [user]);
 
   const addBiomarkers = async (
-    biomarkers: Omit<Biomarker, "id" | "user_id" | "created_at" | "updated_at">,
+    biomarkers: Omit<Biomarker, "id" | "userId" | "createdAt" | "updatedAt">, // Updated to match schema
   ) => {
     if (!user) return { error: "Not authenticated" };
 
     const { error } = await supabase.from("biomarkers").insert([
       {
         ...biomarkers,
-        user_id: user.id,
+        userId: user.id, // Updated to match schema
       },
     ]);
 
@@ -207,7 +207,7 @@ export function useBiomarkers() {
   return { data, loading, addBiomarkers };
 }
 
-// Hook for protocols
+// Hook for protocols (read-only)
 export function useProtocols() {
   const [data, setData] = useState<Protocol[]>([]);
   const [loading, setLoading] = useState(true);
@@ -217,7 +217,7 @@ export function useProtocols() {
       const { data: protocols, error } = await supabase
         .from("protocols")
         .select("*")
-        .order("name");
+        .order("name", { ascending: true });
 
       if (!error) {
         setData(protocols || []);
@@ -249,8 +249,8 @@ export function useUserProtocols() {
           protocol:protocols(*)
         `,
         )
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .eq("userId", user.id) // Updated to match schema
+        .order("createdAt", { ascending: false }); // Updated to match schema
 
       if (!error) {
         setData(userProtocols || []);
@@ -269,7 +269,7 @@ export function useUserProtocols() {
           event: "*",
           schema: "public",
           table: "user_protocols",
-          filter: `user_id=eq.${user.id}`,
+          filter: `userId=eq.${user.id}`, // Updated to match schema
         },
         () => {
           fetchData();
@@ -288,17 +288,17 @@ export function useUserProtocols() {
     // Deactivate current active protocols
     await supabase
       .from("user_protocols")
-      .update({ is_active: false })
-      .eq("user_id", user.id)
-      .eq("is_active", true);
+      .update({ isActive: false }) // Updated to match schema
+      .eq("userId", user.id) // Updated to match schema
+      .eq("isActive", true); // Updated to match schema
 
     // Add new protocol
     const { error } = await supabase.from("user_protocols").insert([
       {
-        user_id: user.id,
-        protocol_id: protocolId,
-        start_date: startDate,
-        is_active: true,
+        userId: user.id, // Updated to match schema
+        protocolId: protocolId, // Updated to match schema
+        startDate: startDate, // Updated to match schema
+        isActive: true, // Updated to match schema
       },
     ]);
 

@@ -14,7 +14,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Database types (based on our schema)
+// Database types (matching actual schema)
 export interface UserProfile {
   id: string;
   email: string | null;
@@ -26,68 +26,68 @@ export interface UserProfile {
 
 export interface WeeklyMetrics {
   id: string;
-  user_id: string;
+  userId: string; // camelCase to match schema
   date: string;
-  resting_heart_rate: number | null;
+  restingHeartRate: number | null; // camelCase to match schema
   vo2max: number | null;
   notes: string | null;
-  created_at: string;
-  updated_at: string;
+  createdAt: string; // camelCase to match schema
+  updatedAt: string; // camelCase to match schema
 }
 
 export interface SessionMetrics {
   id: string;
-  user_id: string;
+  userId: string; // camelCase to match schema
   date: string;
-  max_hr: number | null;
-  avg_hr: number | null;
-  session_type: string | null;
+  maxHR: number | null; // camelCase to match schema
+  avgHR: number | null; // camelCase to match schema
+  sessionType: string | null; // camelCase to match schema
   notes: string | null;
-  created_at: string;
-  updated_at: string;
+  createdAt: string; // camelCase to match schema
+  updatedAt: string; // camelCase to match schema
 }
 
 export interface Biomarker {
   id: string;
-  user_id: string;
+  userId: string; // camelCase to match schema
   date: string;
   hemoglobin: number | null;
   ferritin: number | null;
   crp: number | null;
   glucose: number | null;
-  created_at: string;
-  updated_at: string;
+  createdAt: string; // camelCase to match schema
+  updatedAt: string; // camelCase to match schema
 }
 
 export interface Protocol {
   id: string;
   name: string;
-  vo2max_gain: string;
-  time_to_results: string;
-  protocol_duration: string;
-  fitness_level: string;
-  sport_modality: string;
-  research_population: string;
+  vo2maxGain: string; // camelCase to match schema
+  timeToResults: string; // camelCase to match schema
+  protocolDuration: string; // camelCase to match schema
+  fitnessLevel: string; // camelCase to match schema
+  sportModality: string; // camelCase to match schema
+  researchPopulation: string; // camelCase to match schema
   researchers: string;
   institution: string;
   location: string;
   year: string;
   doi: string;
   description: string | null;
-  how_to_perform: string | null;
-  intensity_control: string | null;
-  created_at: string;
-  updated_at: string;
+  howToPerform: string | null; // camelCase to match schema
+  intensityControl: string | null; // camelCase to match schema
+  createdAt: string; // camelCase to match schema
+  updatedAt: string; // camelCase to match schema
 }
 
 export interface UserProtocol {
   id: string;
-  user_id: string;
-  protocol_id: string;
-  start_date: string;
-  end_date: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  userId: string; // camelCase to match schema
+  protocolId: string; // camelCase to match schema
+  startDate: string; // camelCase to match schema
+  endDate: string | null; // camelCase to match schema
+  isActive: boolean; // camelCase to match schema
+  createdAt: string; // camelCase to match schema
+  updatedAt: string; // camelCase to match schema
   protocol?: Protocol;
 }

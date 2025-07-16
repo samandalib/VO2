@@ -17,7 +17,7 @@ export class BiomarkersService {
       const { data, error } = await supabase
         .from("biomarkers")
         .select("*")
-        .eq("userId", userId) // Using userId (camelCase) to match actual schema
+        .eq("userId", userId) // Updated to match schema
         .order("date", { ascending: false });
 
       if (error) {
@@ -31,8 +31,8 @@ export class BiomarkersService {
         ferritin: item.ferritin,
         crp: item.crp,
         glucose: item.glucose,
-        createdAt: new Date(item.createdAt), // Using camelCase
-        updatedAt: new Date(item.updatedAt), // Using camelCase
+        createdAt: new Date(item.createdAt), // Updated to match schema
+        updatedAt: new Date(item.updatedAt), // Updated to match schema
       }));
     } catch (error) {
       console.error("Error fetching biomarkers:", error);
@@ -49,7 +49,7 @@ export class BiomarkersService {
         .from("biomarkers")
         .insert([
           {
-            user_id: userId,
+            userId: userId, // Updated to match schema
             date: data.date,
             hemoglobin: data.hemoglobin,
             ferritin: data.ferritin,
@@ -71,8 +71,8 @@ export class BiomarkersService {
         ferritin: result.ferritin,
         crp: result.crp,
         glucose: result.glucose,
-        createdAt: new Date(result.created_at),
-        updatedAt: new Date(result.updated_at),
+        createdAt: new Date(result.createdAt), // Updated to match schema
+        updatedAt: new Date(result.updatedAt), // Updated to match schema
       };
     } catch (error) {
       console.error("Error creating biomarker:", error);
@@ -87,8 +87,7 @@ export class BiomarkersService {
     try {
       const updateData: any = {};
       if (data.date !== undefined) updateData.date = data.date;
-      if (data.hemoglobin !== undefined)
-        updateData.hemoglobin = data.hemoglobin;
+      if (data.hemoglobin !== undefined) updateData.hemoglobin = data.hemoglobin;
       if (data.ferritin !== undefined) updateData.ferritin = data.ferritin;
       if (data.crp !== undefined) updateData.crp = data.crp;
       if (data.glucose !== undefined) updateData.glucose = data.glucose;
@@ -111,8 +110,8 @@ export class BiomarkersService {
         ferritin: result.ferritin,
         crp: result.crp,
         glucose: result.glucose,
-        createdAt: new Date(result.created_at),
-        updatedAt: new Date(result.updated_at),
+        createdAt: new Date(result.createdAt), // Updated to match schema
+        updatedAt: new Date(result.updatedAt), // Updated to match schema
       };
     } catch (error) {
       console.error("Error updating biomarker:", error);
@@ -122,7 +121,10 @@ export class BiomarkersService {
 
   static async deleteBiomarker(id: string): Promise<void> {
     try {
-      const { error } = await supabase.from("biomarkers").delete().eq("id", id);
+      const { error } = await supabase
+        .from("biomarkers")
+        .delete()
+        .eq("id", id);
 
       if (error) {
         throw new Error(error.message);

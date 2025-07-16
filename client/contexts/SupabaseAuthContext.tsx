@@ -157,10 +157,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    // Get the current URL for redirect (following Supabase docs pattern)
+    const getRedirectURL = () => {
+      let url = 
+        import.meta.env.VITE_SITE_URL ?? // Set this to your site URL in production
+        import.meta.env.VITE_VERCEL_URL ?? // Automatically set by Vercel
+        window.location.origin; // Fallback to current origin
+      
+      url = url.startsWith('http') ? url : `https://${url}`;
+      return url;
+    };
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getRedirectURL(),
       },
     });
     return { error };

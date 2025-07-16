@@ -17,7 +17,7 @@ export class SessionMetricsService {
       const { data, error } = await supabase
         .from("session_metrics")
         .select("*")
-        .eq("userId", userId) // Using userId (camelCase) to match actual schema
+        .eq("userId", userId) // Updated to match schema
         .order("date", { ascending: false });
 
       if (error) {
@@ -27,12 +27,12 @@ export class SessionMetricsService {
       return data.map((item) => ({
         id: item.id,
         date: item.date,
-        maxHR: item.maxHR, // Using camelCase
-        avgHR: item.avgHR, // Using camelCase
-        sessionType: item.sessionType, // Using camelCase
+        maxHR: item.maxHR, // Updated to match schema
+        avgHR: item.avgHR, // Updated to match schema
+        sessionType: item.sessionType, // Updated to match schema
         notes: item.notes,
-        createdAt: new Date(item.createdAt), // Using camelCase
-        updatedAt: new Date(item.updatedAt), // Using camelCase
+        createdAt: new Date(item.createdAt), // Updated to match schema
+        updatedAt: new Date(item.updatedAt), // Updated to match schema
       }));
     } catch (error) {
       console.error("Error fetching session metrics:", error);
@@ -49,11 +49,11 @@ export class SessionMetricsService {
         .from("session_metrics")
         .insert([
           {
-            user_id: userId,
+            userId: userId, // Updated to match schema
             date: data.date,
-            max_hr: data.maxHR,
-            avg_hr: data.avgHR,
-            session_type: data.sessionType,
+            maxHR: data.maxHR, // Updated to match schema
+            avgHR: data.avgHR, // Updated to match schema
+            sessionType: data.sessionType, // Updated to match schema
             notes: data.notes,
           },
         ])
@@ -67,12 +67,12 @@ export class SessionMetricsService {
       return {
         id: result.id,
         date: result.date,
-        maxHR: result.max_hr,
-        avgHR: result.avg_hr,
-        sessionType: result.session_type,
+        maxHR: result.maxHR, // Updated to match schema
+        avgHR: result.avgHR, // Updated to match schema
+        sessionType: result.sessionType, // Updated to match schema
         notes: result.notes,
-        createdAt: new Date(result.created_at),
-        updatedAt: new Date(result.updated_at),
+        createdAt: new Date(result.createdAt), // Updated to match schema
+        updatedAt: new Date(result.updatedAt), // Updated to match schema
       };
     } catch (error) {
       console.error("Error creating session metric:", error);
@@ -87,10 +87,9 @@ export class SessionMetricsService {
     try {
       const updateData: any = {};
       if (data.date !== undefined) updateData.date = data.date;
-      if (data.maxHR !== undefined) updateData.max_hr = data.maxHR;
-      if (data.avgHR !== undefined) updateData.avg_hr = data.avgHR;
-      if (data.sessionType !== undefined)
-        updateData.session_type = data.sessionType;
+      if (data.maxHR !== undefined) updateData.maxHR = data.maxHR; // Updated to match schema
+      if (data.avgHR !== undefined) updateData.avgHR = data.avgHR; // Updated to match schema
+      if (data.sessionType !== undefined) updateData.sessionType = data.sessionType; // Updated to match schema
       if (data.notes !== undefined) updateData.notes = data.notes;
 
       const { data: result, error } = await supabase
@@ -107,12 +106,12 @@ export class SessionMetricsService {
       return {
         id: result.id,
         date: result.date,
-        maxHR: result.max_hr,
-        avgHR: result.avg_hr,
-        sessionType: result.session_type,
+        maxHR: result.maxHR, // Updated to match schema
+        avgHR: result.avgHR, // Updated to match schema
+        sessionType: result.sessionType, // Updated to match schema
         notes: result.notes,
-        createdAt: new Date(result.created_at),
-        updatedAt: new Date(result.updated_at),
+        createdAt: new Date(result.createdAt), // Updated to match schema
+        updatedAt: new Date(result.updatedAt), // Updated to match schema
       };
     } catch (error) {
       console.error("Error updating session metric:", error);

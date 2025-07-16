@@ -16,7 +16,7 @@ export class WeeklyMetricsService {
       const { data, error } = await supabase
         .from("weekly_metrics")
         .select("*")
-        .eq("userId", userId) // Using userId (camelCase) to match actual schema
+        .eq("userId", userId) // Updated to match schema
         .order("date", { ascending: false });
 
       if (error) {
@@ -26,11 +26,11 @@ export class WeeklyMetricsService {
       return data.map((item) => ({
         id: item.id,
         date: item.date,
-        restingHeartRate: item.restingHeartRate, // Using camelCase
+        restingHeartRate: item.restingHeartRate, // Updated to match schema
         vo2max: item.vo2max,
         notes: item.notes,
-        createdAt: new Date(item.createdAt), // Using camelCase
-        updatedAt: new Date(item.updatedAt), // Using camelCase
+        createdAt: new Date(item.createdAt), // Updated to match schema
+        updatedAt: new Date(item.updatedAt), // Updated to match schema
       }));
     } catch (error) {
       console.error("Error fetching weekly metrics:", error);
@@ -47,9 +47,9 @@ export class WeeklyMetricsService {
         .from("weekly_metrics")
         .insert([
           {
-            user_id: userId,
+            userId: userId, // Updated to match schema
             date: data.date,
-            resting_heart_rate: data.restingHeartRate,
+            restingHeartRate: data.restingHeartRate, // Updated to match schema
             vo2max: data.vo2max,
             notes: data.notes,
           },
@@ -64,11 +64,11 @@ export class WeeklyMetricsService {
       return {
         id: result.id,
         date: result.date,
-        restingHeartRate: result.resting_heart_rate,
+        restingHeartRate: result.restingHeartRate, // Updated to match schema
         vo2max: result.vo2max,
         notes: result.notes,
-        createdAt: new Date(result.created_at),
-        updatedAt: new Date(result.updated_at),
+        createdAt: new Date(result.createdAt), // Updated to match schema
+        updatedAt: new Date(result.updatedAt), // Updated to match schema
       };
     } catch (error) {
       console.error("Error creating weekly metric:", error);
@@ -84,7 +84,7 @@ export class WeeklyMetricsService {
       const updateData: any = {};
       if (data.date !== undefined) updateData.date = data.date;
       if (data.restingHeartRate !== undefined)
-        updateData.resting_heart_rate = data.restingHeartRate;
+        updateData.restingHeartRate = data.restingHeartRate; // Updated to match schema
       if (data.vo2max !== undefined) updateData.vo2max = data.vo2max;
       if (data.notes !== undefined) updateData.notes = data.notes;
 
@@ -102,11 +102,11 @@ export class WeeklyMetricsService {
       return {
         id: result.id,
         date: result.date,
-        restingHeartRate: result.resting_heart_rate,
+        restingHeartRate: result.restingHeartRate, // Updated to match schema
         vo2max: result.vo2max,
         notes: result.notes,
-        createdAt: new Date(result.created_at),
-        updatedAt: new Date(result.updated_at),
+        createdAt: new Date(result.createdAt), // Updated to match schema
+        updatedAt: new Date(result.updatedAt), // Updated to match schema
       };
     } catch (error) {
       console.error("Error updating weekly metric:", error);
