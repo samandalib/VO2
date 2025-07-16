@@ -197,7 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, name?: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -206,6 +206,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       },
     });
+    
+    // If sign-up was successful, create user profile immediately
+    if (data.user && !error) {
+      console.log("🎯 Creating user profile after sign-up");
+      await ensureUserProfileExists(data.user);
+    }
+    
     return { error };
   };
 
@@ -221,27 +228,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    // Get the current URL for redirect (following Supabase docs pattern)
-    const getRedirectURL = () => {
-      let url = 
-        import.meta.env.VITE_SITE_URL ?? // Set this to your site URL in production
-        import.meta.env.VITE_VERCEL_URL ?? // Automatically set by Vercel
-        window.location.origin; // Fallback to current origin
-      
-      url = url.startsWith('http') ? url : `https://${url}`;
-      return url;
-    };
-
+    console.log("🔄 Initiating Google OAuth...");
+    console.log("📍 Current origin:", window.location.origin);
+    console.log("🎯 Redirect URL:", `${window.location.origin}/auth/callback`);
+    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: getRedirectURL(),
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
+    console.log("📡 OAuth response:", { data, error });
+
     // If we get a URL, do a full page redirect
     if (data?.url) {
+      console.log("🚀 Redirecting to:", data.url);
       window.location.href = data.url;
+    } else {
+      console.log("⚠️ No redirect URL received");
     }
 
     return { error };

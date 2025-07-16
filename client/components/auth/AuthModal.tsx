@@ -57,7 +57,6 @@ export function AuthModal({
     name: "",
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const validateForm = (isSignUp: boolean): boolean => {
     const errors: Record<string, string> = {};
@@ -135,31 +134,16 @@ export function AuthModal({
       // Show verification success screen
       setVerificationEmail(formData.email);
       setShowVerificationSuccess(true);
-      resetForm();
+      // Don't reset form here - let the user see the confirmation screen
     } catch (error) {
       setError("An unexpected error occurred");
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    try {
-      setIsGoogleLoading(true);
-      clearError();
-
-      const { error } = await signInWithGoogle();
-      if (error) {
-        console.error("Google OAuth error:", error);
-        setError(error.message);
-        setIsGoogleLoading(false);
-      }
-      // Note: On success, the page will redirect to Google OAuth
-      // so we don't need to handle success here
-    } catch (error) {
-      console.error("OAuth initiation failed:", error);
-      setError("Google sign in failed");
-      setIsGoogleLoading(false);
-    }
-  };
+  // Google OAuth temporarily disabled
+  // const handleGoogleSignIn = async () => {
+  //   // Implementation removed
+  // };
 
   const resetForm = () => {
     setFormData({
@@ -171,7 +155,6 @@ export function AuthModal({
     setFormErrors({});
     setShowVerificationSuccess(false);
     setVerificationEmail("");
-    setIsGoogleLoading(false);
     clearError();
   };
 
@@ -229,7 +212,7 @@ export function AuthModal({
                         handleInputChange("email", e.target.value)
                       }
                       className={`pl-10 ${formErrors.email ? "border-red-500" : ""}`}
-                      disabled={isLoading || isGoogleLoading}
+                      disabled={isLoading}
                     />
                   </div>
                   {formErrors.email && (
@@ -250,7 +233,7 @@ export function AuthModal({
                         handleInputChange("password", e.target.value)
                       }
                       className={`pl-10 pr-10 ${formErrors.password ? "border-red-500" : ""}`}
-                      disabled={isLoading || isGoogleLoading}
+                      disabled={isLoading}
                     />
                     <Button
                       type="button"
@@ -258,7 +241,7 @@ export function AuthModal({
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
-                      disabled={isLoading || isGoogleLoading}
+                      disabled={isLoading}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -287,7 +270,7 @@ export function AuthModal({
                       }
                     }}
                     className="text-sm text-primary hover:underline"
-                    disabled={isLoading || isGoogleLoading}
+                    disabled={isLoading}
                   >
                     Forgot password?
                   </button>
@@ -296,7 +279,7 @@ export function AuthModal({
                 <Button
                   onClick={handleSignIn}
                   className="w-full"
-                  disabled={isLoading || isGoogleLoading}
+                  disabled={isLoading}
                 >
                   {isLoading ? (
                     <>
@@ -305,53 +288,6 @@ export function AuthModal({
                     </>
                   ) : (
                     "Sign In"
-                  )}
-                </Button>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Or continue with
-                    </span>
-                  </div>
-                </div>
-
-                <Button
-                  variant="outline"
-                  onClick={handleGoogleSignIn}
-                  className="w-full"
-                  disabled={isLoading || isGoogleLoading}
-                >
-                  {isGoogleLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Connecting to Google...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                        <path
-                          fill="currentColor"
-                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        />
-                        <path
-                          fill="currentColor"
-                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        />
-                        <path
-                          fill="currentColor"
-                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                        />
-                        <path
-                          fill="currentColor"
-                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        />
-                      </svg>
-                      Continue with Google
-                    </>
                   )}
                 </Button>
 
@@ -408,7 +344,7 @@ export function AuthModal({
                         handleInputChange("name", e.target.value)
                       }
                       className={`pl-10 ${formErrors.name ? "border-red-500" : ""}`}
-                      disabled={isLoading || isGoogleLoading}
+                      disabled={isLoading}
                     />
                   </div>
                   {formErrors.name && (
@@ -429,7 +365,7 @@ export function AuthModal({
                         handleInputChange("email", e.target.value)
                       }
                       className={`pl-10 ${formErrors.email ? "border-red-500" : ""}`}
-                      disabled={isLoading || isGoogleLoading}
+                      disabled={isLoading}
                     />
                   </div>
                   {formErrors.email && (
@@ -450,7 +386,7 @@ export function AuthModal({
                         handleInputChange("password", e.target.value)
                       }
                       className={`pl-10 pr-10 ${formErrors.password ? "border-red-500" : ""}`}
-                      disabled={isLoading || isGoogleLoading}
+                      disabled={isLoading}
                     />
                     <Button
                       type="button"
@@ -458,7 +394,7 @@ export function AuthModal({
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
-                      disabled={isLoading || isGoogleLoading}
+                      disabled={isLoading}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -489,7 +425,7 @@ export function AuthModal({
                         handleInputChange("confirmPassword", e.target.value)
                       }
                       className={`pl-10 ${formErrors.confirmPassword ? "border-red-500" : ""}`}
-                      disabled={isLoading || isGoogleLoading}
+                      disabled={isLoading}
                     />
                   </div>
                   {formErrors.confirmPassword && (
@@ -502,7 +438,7 @@ export function AuthModal({
                 <Button
                   onClick={handleSignUp}
                   className="w-full"
-                  disabled={isLoading || isGoogleLoading}
+                  disabled={isLoading}
                 >
                   {isLoading ? (
                     <>
@@ -514,52 +450,6 @@ export function AuthModal({
                   )}
                 </Button>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Or continue with
-                    </span>
-                  </div>
-                </div>
-
-                <Button
-                  variant="outline"
-                  onClick={handleGoogleSignIn}
-                  className="w-full"
-                  disabled={isLoading || isGoogleLoading}
-                >
-                  {isGoogleLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Connecting to Google...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                        <path
-                          fill="currentColor"
-                          d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        />
-                        <path
-                          fill="currentColor"
-                          d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        />
-                        <path
-                          fill="currentColor"
-                          d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                        />
-                        <path
-                          fill="currentColor"
-                          d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        />
-                      </svg>
-                      Continue with Google
-                    </>
-                  )}
-                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -584,9 +474,9 @@ export function AuthModal({
               </svg>
             </div>
 
-            <h3 className="text-lg font-semibold mb-2">Check Your Email!</h3>
+            <h3 className="text-lg font-semibold mb-2">Account Created Successfully!</h3>
             <p className="text-muted-foreground mb-4">
-              We've sent a verification link to:
+              We've sent a verification email to:
             </p>
             <p className="font-medium text-primary mb-6">{verificationEmail}</p>
 
@@ -595,6 +485,7 @@ export function AuthModal({
                 onClick={() => {
                   setShowVerificationSuccess(false);
                   setActiveTab("signin");
+                  resetForm(); // Reset form when going to sign in
                 }}
                 className="w-full"
               >
@@ -603,17 +494,22 @@ export function AuthModal({
 
               <Button
                 variant="outline"
-                onClick={() => setShowVerificationSuccess(false)}
+                onClick={() => {
+                  setShowVerificationSuccess(false);
+                  resetForm(); // Reset form when going back to sign up
+                }}
                 className="w-full"
               >
-                Back to Sign Up
+                Create Another Account
               </Button>
             </div>
 
-            <p className="text-xs text-muted-foreground mt-4">
-              Check your email and click the verification link to complete your
-              account setup.
-            </p>
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                <strong>Next steps:</strong> Check your email and click the verification link to activate your account. 
+                You can then sign in and start your VO₂max training journey!
+              </p>
+            </div>
           </div>
         )}
       </DialogContent>
