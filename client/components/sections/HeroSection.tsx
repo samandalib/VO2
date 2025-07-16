@@ -9,7 +9,10 @@ import {
   FlaskConical,
   Target,
   LogIn,
+  LogOut,
+  User,
 } from "lucide-react";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 interface HeroSectionProps {
   onStartAssessment: () => void;
@@ -26,6 +29,7 @@ export function HeroSection({
   onShowTestingProtocols,
   onSignIn,
 }: HeroSectionProps) {
+  const { user, signOut } = useAuth();
   const features = [
     {
       icon: BarChart3,
@@ -67,18 +71,35 @@ export function HeroSection({
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-background via-primary/5 to-primary/10">
-      {/* Header with Theme Toggle and Sign In Button */}
+      {/* Header with Theme Toggle and Auth Button */}
       <div className="absolute top-0 right-0 p-6 z-10 flex items-center gap-3">
         <ThemeToggle />
-        {onSignIn && (
-          <Button
-            onClick={onSignIn}
-            variant="outline"
-            className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300"
-          >
-            <LogIn className="w-4 h-4 mr-2" />
-            Sign In
-          </Button>
+        {user ? (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/80 backdrop-blur-sm px-3 py-2 rounded-md">
+              <User className="w-4 h-4" />
+              <span className="font-mono">{user.email}</span>
+            </div>
+            <Button
+              onClick={signOut}
+              variant="outline"
+              className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
+        ) : (
+          onSignIn && (
+            <Button
+              onClick={onSignIn}
+              variant="outline"
+              className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300"
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              Sign In
+            </Button>
+          )
         )}
       </div>
       <div className="container mx-auto px-4 py-20 lg:py-32">
@@ -102,20 +123,46 @@ export function HeroSection({
               </h1>
 
               <p className="text-xl text-muted-foreground mb-8 max-w-2xl lg:max-w-none leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
-                Get personalized, science-backed training plans to improve your
-                cardiovascular fitness. Our evidence-based approach adapts to
-                your current fitness level and goals.
+                {user ? (
+                  <>
+                    Welcome back! Continue your cardiovascular fitness journey
+                    with personalized, science-backed training plans that adapt
+                    to your progress.
+                  </>
+                ) : (
+                  <>
+                    Get personalized, science-backed training plans to improve
+                    your cardiovascular fitness. Our evidence-based approach
+                    adapts to your current fitness level and goals.
+                  </>
+                )}
               </p>
 
               <div className="animate-in fade-in slide-in-from-bottom-8 duration-700 delay-500 flex flex-col justify-center items-center">
-                <Button
-                  onClick={onStartAssessment}
-                  className="text-lg px-8 py-6 h-auto rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 hover:-translate-y-1 group relative overflow-hidden"
-                >
-                  <span className="relative z-10">Start training</span>
-                  <ArrowRight className="w-5 h-5 ml-2 transition-transform duration-300 group-hover:translate-x-1 relative z-10" />
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </Button>
+                {user ? (
+                  <Button
+                    onClick={onNavigateToDashboard}
+                    className="text-lg px-8 py-6 h-auto rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 hover:-translate-y-1 group relative overflow-hidden"
+                  >
+                    <span className="relative z-10">Go to Dashboard</span>
+                    <ArrowRight className="w-5 h-5 ml-2 transition-transform duration-300 group-hover:translate-x-1 relative z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </Button>
+                ) : (
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Sign in to see your training dashboard
+                    </p>
+                    <Button
+                      onClick={onStartAssessment}
+                      className="text-lg px-8 py-6 h-auto rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 hover:-translate-y-1 group relative overflow-hidden"
+                    >
+                      <span className="relative z-10">Start training</span>
+                      <ArrowRight className="w-5 h-5 ml-2 transition-transform duration-300 group-hover:translate-x-1 relative z-10" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 
