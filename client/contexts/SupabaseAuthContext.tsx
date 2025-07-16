@@ -155,8 +155,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") &&
         !localStorage.getItem("mock_auth_user")
       ) {
-        console.log("�� Creating user profile for authenticated user");
+        console.log("🎯 Creating user profile for authenticated user");
         await ensureUserProfileExists(session.user);
+
+        // If this is a fresh sign in (not token refresh) and user is on home page, redirect to dashboard
+        if (event === "SIGNED_IN" && window.location.pathname === "/") {
+          console.log("🎯 Redirecting authenticated user to dashboard");
+          setTimeout(() => {
+            window.location.href = "/dashboard";
+          }, 500); // Small delay to ensure profile creation is complete
+        }
       }
 
       setLoading(false);
@@ -224,7 +232,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: `${window.location.origin}/`,
       },
     });
 
