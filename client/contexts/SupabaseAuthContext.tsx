@@ -138,6 +138,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: session?.user?.email,
       });
 
+      // Handle sign out events explicitly
+      if (event === "SIGNED_OUT") {
+        console.log("🚪 User signed out, clearing state");
+        localStorage.removeItem("mock_auth_user");
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
       setUser(session?.user ?? null);
 
       // Create user profile if it doesn't exist (for real users, not demo)
@@ -146,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") &&
         !localStorage.getItem("mock_auth_user")
       ) {
-        console.log("🎯 Creating user profile for authenticated user");
+        console.log("�� Creating user profile for authenticated user");
         await ensureUserProfileExists(session.user);
       }
 
@@ -206,6 +215,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Sign out from Supabase
     await supabase.auth.signOut();
     setUser(null);
+
+    // Redirect to home page after sign out
+    window.location.href = "/";
   };
 
   const signInWithGoogle = async () => {
