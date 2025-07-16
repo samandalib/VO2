@@ -207,10 +207,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     });
     
-    // If sign-up was successful, create user profile immediately
+    // If sign-up was successful, create user profile and sign in immediately
     if (data.user && !error) {
       console.log("🎯 Creating user profile after sign-up");
       await ensureUserProfileExists(data.user);
+      
+      // Automatically sign in the user (bypass email confirmation)
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (signInError) {
+        console.error("❌ Auto sign-in failed:", signInError);
+        return { error: signInError };
+      }
+      
+      console.log("✅ User signed up and signed in successfully");
     }
     
     return { error };

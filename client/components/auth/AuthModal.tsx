@@ -47,8 +47,6 @@ export function AuthModal({
 
   const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
   const [showPassword, setShowPassword] = useState(false);
-  const [showVerificationSuccess, setShowVerificationSuccess] = useState(false);
-  const [verificationEmail, setVerificationEmail] = useState("");
   const [error, setError] = useState<string>("");
   const [formData, setFormData] = useState({
     email: "",
@@ -131,10 +129,11 @@ export function AuthModal({
         return;
       }
 
-      // Show verification success screen
-      setVerificationEmail(formData.email);
-      setShowVerificationSuccess(true);
-      // Don't reset form here - let the user see the confirmation screen
+      // Sign up successful - user is automatically signed in
+      console.log("✅ Sign up successful, redirecting to dashboard");
+      onSuccess?.();
+      onClose();
+      window.location.href = "/dashboard";
     } catch (error) {
       setError("An unexpected error occurred");
     }
@@ -153,8 +152,6 @@ export function AuthModal({
       name: "",
     });
     setFormErrors({});
-    setShowVerificationSuccess(false);
-    setVerificationEmail("");
     clearError();
   };
 
@@ -455,63 +452,7 @@ export function AuthModal({
           </TabsContent>
         </Tabs>
 
-        {/* Email Verification Success Screen */}
-        {showVerificationSuccess && (
-          <div className="absolute inset-0 bg-background rounded-lg flex flex-col items-center justify-center p-6 text-center">
-            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/30 rounded-full flex items-center justify-center mb-4">
-              <svg
-                className="w-8 h-8 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-
-            <h3 className="text-lg font-semibold mb-2">Account Created Successfully!</h3>
-            <p className="text-muted-foreground mb-4">
-              We've sent a verification email to:
-            </p>
-            <p className="font-medium text-primary mb-6">{verificationEmail}</p>
-
-            <div className="space-y-3 w-full">
-              <Button
-                onClick={() => {
-                  setShowVerificationSuccess(false);
-                  setActiveTab("signin");
-                  resetForm(); // Reset form when going to sign in
-                }}
-                className="w-full"
-              >
-                Continue to Sign In
-              </Button>
-
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowVerificationSuccess(false);
-                  resetForm(); // Reset form when going back to sign up
-                }}
-                className="w-full"
-              >
-                Create Another Account
-              </Button>
-            </div>
-
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-              <p className="text-xs text-blue-700 dark:text-blue-300">
-                <strong>Next steps:</strong> Check your email and click the verification link to activate your account. 
-                You can then sign in and start your VO₂max training journey!
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Email verification screen removed - users are automatically signed in */}
       </DialogContent>
     </Dialog>
   );
