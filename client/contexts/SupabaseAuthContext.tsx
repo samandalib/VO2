@@ -25,6 +25,53 @@ export function useAuth() {
   return context;
 }
 
+// Helper function to ensure user profile exists in database
+const ensureUserProfileExists = async (user: User) => {
+  try {
+    console.log("🔍 Checking if user profile exists for:", user.id);
+
+    const { data: existingProfile, error: selectError } = await supabase
+      .from("user_profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (selectError && selectError.code !== "PGRST116") {
+      console.error("❌ Error checking user profile:", selectError);
+      return;
+    }
+
+    if (!existingProfile) {
+      console.log("➕ Creating user profile for:", user.email);
+
+      const { data: newProfile, error: insertError } = await supabase
+        .from("user_profiles")
+        .insert([
+          {
+            id: user.id,
+            email: user.email,
+            name:
+              user.user_metadata?.name || user.user_metadata?.full_name || null,
+            picture:
+              user.user_metadata?.picture ||
+              user.user_metadata?.avatar_url ||
+              null,
+          },
+        ]);
+
+      if (insertError) {
+        console.error("❌ Error creating user profile:", insertError);
+      } else {
+        console.log("✅ User profile created successfully");
+      }
+    } else {
+      console.log("✅ User profile already exists");
+    }
+  } catch (error) {
+    console.error("❌ Error in ensureUserProfileExists:", error);
+  }
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +107,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const {
           data: { session },
         } = await supabase.auth.getSession();
+
+        // If we have a session, ensure user profile exists
+        if (session?.user) {
+          console.log(
+            "🎯 Found existing session, ensuring user profile exists:",
+            session.user.id,
+          );
+          await ensureUserProfileExists(session.user);
+        }
+
         setUser(session?.user ?? null);
         setLoading(false);
       } catch (error) {
@@ -70,6 +127,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     checkAuth();
+
+    // Listen for auth changes from Supabase
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("🔔 Auth state changed:", {
+        event,
+        session: session?.user?.id,
+        email: session?.user?.email,
+      });
+
+      // Handle sign out events explicitly
+      if (event === "SIGNED_OUT") {
+        console.log("🚪 User signed out, clearing state");
+        localStorage.removeItem("mock_auth_user");
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      setUser(session?.user ?? null);
+
+      // Create user profile if it doesn't exist (for real users, not demo)
+      if (
+        session?.user &&
+        (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") &&
+        !localStorage.getItem("mock_auth_user")
+      ) {
+        console.log("🎯 Creating user profile for authenticated user");
+        await ensureUserProfileExists(session.user);
+      }
+
+      setLoading(false);
+    });
 
     // Also listen for localStorage changes (for demo accounts)
     const handleStorageChange = (e: StorageEvent) => {
@@ -91,40 +182,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 1000);
 
     return () => {
+      subscription.unsubscribe();
       window.removeEventListener("storage", handleStorageChange);
       clearInterval(intervalId);
     };
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
-
-      // Create user profile if it doesn't exist
-      if (session?.user && event === "SIGNED_IN") {
-        const { data: existingProfile } = await supabase
-          .from("user_profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-
-        if (!existingProfile) {
-          await supabase.from("user_profiles").insert([
-            {
-              id: session.user.id,
-              email: session.user.email,
-              name: session.user.user_metadata?.name || null,
-              picture: session.user.user_metadata?.picture || null,
-            },
-          ]);
-        }
-      }
-
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -154,6 +215,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Sign out from Supabase
     await supabase.auth.signOut();
     setUser(null);
+
+    // Redirect to home page after sign out
+    window.location.href = "/";
   };
 
   const signInWithGoogle = async () => {
@@ -168,12 +232,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return url;
     };
 
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: getRedirectURL(),
       },
     });
+
+    // If we get a URL, do a full page redirect
+    if (data?.url) {
+      window.location.href = data.url;
+    }
+
     return { error };
   };
 

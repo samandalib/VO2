@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, User as UserIcon } from "lucide-react";
 import { User } from "@/types/dashboard";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
@@ -43,7 +43,13 @@ export function DashboardHeader({ user, onSignOut }: DashboardHeaderProps) {
       <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-spotify-green to-emerald-400 bg-clip-text text-transparent">
         Welcome back, {user.name}!
       </h1>
-      <span className="text-sm text-muted-foreground">{user.email}</span>
+      <div className="flex flex-col gap-1">
+        <span className="text-sm text-muted-foreground">{user.email}</span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
+          <UserIcon className="w-3 h-3" />
+          <span className="font-mono">Email: {user.email}</span>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Shield, Zap, Target, X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Loader2, Shield, Zap, Target } from "lucide-react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 
 interface SimpleAuthModalProps {
@@ -35,6 +42,7 @@ export function SimpleAuthModal({
   useEffect(() => {
     if (isOpen) {
       setError(null);
+      setIsSigningIn(false);
     }
   }, [isOpen]);
 
@@ -47,13 +55,13 @@ export function SimpleAuthModal({
       const { error } = await signInWithGoogle();
       if (error) {
         setError(error.message || "Sign in failed");
-      } else {
-        console.log("Google sign-in successful");
+        setIsSigningIn(false);
       }
+      // Note: On success, the page will redirect to Google OAuth
+      // so we don't need to handle success here or reset loading state
     } catch (error) {
       console.error("Sign in failed:", error);
       setError(error instanceof Error ? error.message : "Sign in failed");
-    } finally {
       setIsSigningIn(false);
     }
   };
@@ -65,150 +73,35 @@ export function SimpleAuthModal({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(0, 0, 0, 0.5)",
-        zIndex: 50000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "16px",
-      }}
-      onClick={handleClose}
-    >
-      <div
-        style={{
-          backgroundColor: "white",
-          borderRadius: "12px",
-          padding: "32px",
-          maxWidth: "400px",
-          width: "100%",
-          maxHeight: "90vh",
-          overflow: "auto",
-          position: "relative",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          style={{
-            position: "absolute",
-            top: "16px",
-            right: "16px",
-            background: "none",
-            border: "none",
-            fontSize: "20px",
-            cursor: "pointer",
-            width: "32px",
-            height: "32px",
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <X size={16} />
-        </button>
-
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "24px" }}>
-          <div
-            style={{
-              width: "48px",
-              height: "48px",
-              backgroundColor: "#dbeafe",
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-            }}
-          >
-            <Shield
-              style={{ width: "24px", height: "24px", color: "#1d4ed8" }}
-            />
-          </div>
-          <h2
-            style={{
-              fontSize: "20px",
-              fontWeight: "600",
-              marginBottom: "8px",
-              color: "#111827",
-            }}
-          >
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-center flex items-center justify-center gap-2">
+            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+              <Shield className="w-4 h-4 text-primary" />
+            </div>
             {title}
-          </h2>
-          <p
-            style={{
-              color: "#6b7280",
-              fontSize: "14px",
-              lineHeight: "1.5",
-            }}
-          >
+          </DialogTitle>
+          <DialogDescription className="text-center">
             {description}
-          </p>
-        </div>
+          </DialogDescription>
+        </DialogHeader>
 
-        {/* Benefits */}
-        <div
-          style={{
-            backgroundColor: "#f9fafb",
-            borderRadius: "8px",
-            padding: "16px",
-            marginBottom: "24px",
-          }}
-        >
-          <h4
-            style={{
-              fontWeight: "500",
-              fontSize: "14px",
-              marginBottom: "12px",
-              color: "#111827",
-            }}
-          >
-            Why sign in?
-          </h4>
-          <div style={{ fontSize: "14px", color: "#6b7280" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "8px",
-              }}
-            >
-              <Zap
-                style={{ width: "16px", height: "16px", color: "#1d4ed8" }}
-              />
+        {/* Benefits Section */}
+        <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+          <h4 className="font-medium text-sm text-foreground">Why sign in?</h4>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-primary" />
               <span>Personalized training plans</span>
             </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "8px",
-              }}
-            >
-              <Target
-                style={{ width: "16px", height: "16px", color: "#1d4ed8" }}
-              />
+            <div className="flex items-center gap-2">
+              <Target className="w-4 h-4 text-primary" />
               <span>Track your progress</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <Shield
-                style={{ width: "16px", height: "16px", color: "#1d4ed8" }}
-              />
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-primary" />
               <span>Secure data sync</span>
             </div>
           </div>
@@ -216,26 +109,16 @@ export function SimpleAuthModal({
 
         {/* Error Alert */}
         {error && (
-          <div
-            style={{
-              backgroundColor: "#fef2f2",
-              border: "1px solid #fecaca",
-              borderRadius: "8px",
-              padding: "12px",
-              marginBottom: "16px",
-              color: "#dc2626",
-              fontSize: "14px",
-            }}
-          >
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-destructive text-sm">
             {error}
             {error.includes("Google Client ID") && (
-              <div style={{ marginTop: "8px", fontSize: "12px" }}>
+              <div className="mt-2 text-xs">
                 <p>The Google authentication is not properly configured.</p>
                 <p>Please check the setup instructions or contact support.</p>
               </div>
             )}
             {error.includes("origin is not allowed") && (
-              <div style={{ marginTop: "8px", fontSize: "12px" }}>
+              <div className="mt-2 text-xs">
                 <p>
                   <strong>Origin Error:</strong> The current URL (
                   {window.location.origin}) is not authorized.
@@ -244,26 +127,41 @@ export function SimpleAuthModal({
                   Please add <strong>{window.location.origin}</strong> to your
                   Google OAuth Client ID in Google Cloud Console.
                 </p>
-                <p>
-                  Go to: APIs & Services → Credentials → Edit your Client ID →
-                  Add to Authorized JavaScript origins
-                </p>
               </div>
             )}
           </div>
         )}
 
-        {/* Prioritize Mock Sign In if Google OAuth has issues (development only) */}
-        {(error && error.includes("not configured")) || import.meta.env.DEV ? (
-          <>
-            {/* Mock Sign In - Primary option when Google OAuth unavailable */}
+        <div className="space-y-3">
+          {/* Google Sign In - Primary option */}
+          <Button
+            onClick={handleGoogleSignIn}
+            disabled={loading || isSigningIn}
+            variant="outline"
+            className="w-full"
+          >
+            {isSigningIn ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Connecting to Google...
+              </>
+            ) : (
+              <>
+                <GoogleIcon className="mr-2 h-4 w-4" />
+                Continue with Google
+              </>
+            )}
+          </Button>
+
+          {/* Demo Account Button for Development */}
+          {import.meta.env.DEV && (
             <Button
               onClick={() => {
                 console.log("Mock sign-in clicked");
                 const mockUser = {
                   id: "mock-user-123",
-                  email: "test@example.com",
-                  name: "Test User",
+                  email: "demo@vo2max.app",
+                  name: "Demo User",
                   picture: "https://via.placeholder.com/40",
                   provider: "google" as const,
                   createdAt: new Date().toISOString(),
@@ -277,194 +175,36 @@ export function SimpleAuthModal({
                 console.log("✅ Demo account saved to localStorage");
                 onSuccess?.();
                 onClose();
-                // Navigate directly to dashboard instead of reloading
                 window.location.href = "/dashboard";
               }}
-              style={{
-                width: "100%",
-                height: "48px",
-                backgroundColor: "#10b981",
-                border: "none",
-                borderRadius: "8px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "12px",
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "white",
-                cursor: "pointer",
-                marginBottom: "12px",
-              }}
+              className="w-full"
             >
               🚀 Continue with Demo Account
             </Button>
-
-            {/* Google Sign In - Secondary option */}
-            <Button
-              onClick={handleGoogleSignIn}
-              disabled={loading || isSigningIn}
-              style={{
-                width: "100%",
-                height: "48px",
-                backgroundColor: "white",
-                border: "1px solid #d1d5db",
-                borderRadius: "8px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "12px",
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "#6b7280",
-                cursor: isLoading || isSigningIn ? "not-allowed" : "pointer",
-                opacity: 0.7,
-              }}
-            >
-              <GoogleIcon style={{ width: "20px", height: "20px" }} />
-              Continue with Google (Requires Setup)
-            </Button>
-          </>
-        ) : (
-          <>
-            {/* Google Sign In - Primary option when available */}
-            <Button
-              onClick={handleGoogleSignIn}
-              disabled={loading || isSigningIn}
-              style={{
-                width: "100%",
-                height: "48px",
-                backgroundColor: "white",
-                border: "1px solid #d1d5db",
-                borderRadius: "8px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "12px",
-                fontSize: "14px",
-                fontWeight: "500",
-                color: "#374151",
-                cursor: loading || isSigningIn ? "not-allowed" : "pointer",
-                opacity: loading || isSigningIn ? 0.6 : 1,
-                marginBottom: "12px",
-              }}
-            >
-              {isSigningIn ? (
-                <Loader2
-                  style={{
-                    width: "16px",
-                    height: "16px",
-                    animation: "spin 1s linear infinite",
-                  }}
-                />
-              ) : (
-                <GoogleIcon style={{ width: "20px", height: "20px" }} />
-              )}
-              {isSigningIn ? "Signing in..." : "Continue with Google"}
-            </Button>
-
-            {/* Mock Sign In - Alternative option (development only) */}
-            {import.meta.env.DEV && (
-              <Button
-                onClick={() => {
-                  console.log("Mock sign-in clicked");
-                  const mockUser = {
-                    id: "mock-user-123",
-                    email: "test@example.com",
-                    name: "Test User",
-                    picture: "https://via.placeholder.com/40",
-                    provider: "google" as const,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                  };
-
-                  localStorage.setItem(
-                    "mock_auth_user",
-                    JSON.stringify(mockUser),
-                  );
-                  console.log("✅ Demo account saved to localStorage");
-                  onSuccess?.();
-                  onClose();
-                  // Navigate directly to dashboard instead of reloading
-                  window.location.href = "/dashboard";
-                }}
-                style={{
-                  width: "100%",
-                  height: "48px",
-                  backgroundColor: "#f59e0b",
-                  border: "none",
-                  borderRadius: "8px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "12px",
-                  fontSize: "14px",
-                  fontWeight: "500",
-                  color: "white",
-                  cursor: "pointer",
-                }}
-              >
-                ���� Or Use Demo Account
-              </Button>
-            )}
-          </>
-        )}
-
-        <div style={{ marginTop: "16px", textAlign: "center" }}>
-          <p
-            style={{
-              fontSize: "12px",
-              color: "#9ca3af",
-              lineHeight: "1.4",
-              marginBottom: "8px",
-            }}
-          >
-            By continuing, you agree to our Terms of Service and Privacy Policy
-          </p>
-          <p
-            style={{
-              fontSize: "11px",
-              color: "#6b7280",
-              backgroundColor: "#f9fafb",
-              padding: "8px",
-              borderRadius: "4px",
-              lineHeight: "1.3",
-            }}
-          >
-            <strong>For Testing:</strong> Use "Mock Sign In" button if Google
-            authentication shows origin errors. To fix Google auth permanently,
-            add{" "}
-            <code
-              style={{
-                backgroundColor: "#e5e7eb",
-                padding: "2px 4px",
-                borderRadius: "2px",
-              }}
-            >
-              http://localhost:8080
-            </code>{" "}
-            to your Google OAuth Client ID's authorized origins.
-          </p>
+          )}
         </div>
 
-        {/* Fallback button container for Google Sign-In */}
-        <div
-          id="google-signin-button"
-          style={{
-            display: "none",
-            marginTop: "16px",
-            textAlign: "center",
-          }}
-        ></div>
-      </div>
-    </div>
+        {/* Footer */}
+        <div className="text-center">
+          <p className="text-xs text-muted-foreground mb-2">
+            By continuing, you agree to our Terms of Service and Privacy Policy
+          </p>
+          {import.meta.env.DEV && (
+            <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded text-center">
+              <strong>For Testing:</strong> Use "Demo Account" if Google
+              authentication shows origin errors.
+            </p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 // Google Icon Component
-function GoogleIcon({ style }: { style?: React.CSSProperties }) {
+function GoogleIcon({ className }: { className?: string }) {
   return (
-    <svg style={style} viewBox="0 0 24 24">
+    <svg className={className} viewBox="0 0 24 24">
       <path
         fill="#4285f4"
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
