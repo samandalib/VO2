@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import { Dashboard } from "./pages/Dashboard";
 import { ProtocolPicker } from "./pages/ProtocolPicker";
 import AuthCallback from "./pages/AuthCallback";
+import EmailConfirmation from "./pages/EmailConfirmation";
 
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/protocols" element={<ProtocolPicker />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/confirm" element={<EmailConfirmation />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
