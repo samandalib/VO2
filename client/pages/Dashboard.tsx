@@ -29,6 +29,7 @@ import { ProfileModal } from "@/components/dashboard/ProfileModal";
 
 // Hooks
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { UserProtocolsService } from "@/lib/api/userProtocols";
 
 // Utils
 import {
@@ -155,11 +156,27 @@ export function Dashboard() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [profileName, setProfileName] = useState("");
+  const [activeProtocolId, setActiveProtocolId] = useState<string | null>(null);
 
   const selectedProtocol = searchParams.get("protocol");
-  const protocolData = selectedProtocol
-    ? getProtocolById(selectedProtocol)
-    : null;
+
+  // Fetch the user's active protocol if not in URL
+  useEffect(() => {
+    if (!selectedProtocol && effectiveUser?.id) {
+      UserProtocolsService.getCurrentProtocol(effectiveUser.id)
+        .then((userProtocol) => {
+          if (userProtocol && userProtocol.protocolId) {
+            setActiveProtocolId(userProtocol.protocolId);
+          } else {
+            setActiveProtocolId(null);
+          }
+        })
+        .catch(() => setActiveProtocolId(null));
+    }
+  }, [selectedProtocol, effectiveUser?.id]);
+
+  const protocolIdToUse = selectedProtocol || activeProtocolId;
+  const protocolData = protocolIdToUse ? getProtocolById(protocolIdToUse) : null;
 
   // Use custom hook for dashboard data
   const { progressStats, userProgress, isLoading } =
