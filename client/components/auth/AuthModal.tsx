@@ -9,8 +9,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Mail, Loader2, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Mail, User, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useNavigate } from "react-router-dom";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -27,34 +29,39 @@ export function AuthModal({
   description = "Sign in to track your progress and access personalized training protocols",
   onSuccess,
 }: AuthModalProps) {
-  const { loading: isLoading } = useAuth();
+  const { signInWithMagicLink, signInWithDemo, loading: isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState(false);
-  const [sending, setSending] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSendMagicLink = async () => {
+  const handleMagicLink = async () => {
     setError("");
-    setSending(true);
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      setError("Please enter a valid email");
+      return;
+    }
     try {
-      // Use Supabase magic link
-      const { supabase } = await import("@/lib/supabase");
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
+      const { error } = await signInWithMagicLink(email);
       if (error) {
         setError(error.message);
-        setSending(false);
         return;
       }
       setSuccess(true);
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred");
-    } finally {
-      setSending(false);
+    } catch (e) {
+      setError("An unexpected error occurred");
+    }
+  };
+
+  const handleDemo = async () => {
+    setError("");
+    try {
+      await signInWithDemo();
+      onSuccess?.();
+      onClose();
+      navigate("/dashboard");
+    } catch (e) {
+      setError("Failed to sign in as demo user");
     }
   };
 
@@ -63,62 +70,55 @@ export function AuthModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center">{title}</DialogTitle>
-          <DialogDescription className="text-center">
-            {description}
-          </DialogDescription>
+          <DialogDescription className="text-center">{description}</DialogDescription>
         </DialogHeader>
-        {success ? (
-          <div className="flex flex-col items-center justify-center py-8">
-            <div className="text-green-600 text-lg font-semibold mb-4">Check your email!</div>
-            <div className="mb-6 text-center">A magic login link has been sent to <span className="font-mono">{email}</span>.<br />Click the link in your inbox to sign in.</div>
-            <Button onClick={onClose}>Close</Button>
-          </div>
-        ) : (
-          <form
-            onSubmit={e => {
-              e.preventDefault();
-              handleSendMagicLink();
-            }}
-            className="space-y-6"
-          >
-            {error && (
-              <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
-                <AlertCircle className="w-4 h-4" />
-                <span>{error}</span>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-center">Sign in with Magic Link</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {success ? (
+              <div className="text-green-600 text-center mb-4">
+                Check your email for a magic link to sign in.
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            ) : (
+              <form
+                onSubmit={e => {
+                  e.preventDefault();
+                  handleMagicLink();
+                }}
+                className="space-y-4"
+              >
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email"
+                  autoComplete="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="pl-10"
+                  placeholder="you@example.com"
                   required
-                  disabled={isLoading || sending}
+                  disabled={isLoading}
                 />
-              </div>
+                {error && (
+                  <div className="flex items-center text-red-600 text-sm mt-2">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {error}
+                  </div>
+                )}
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Sending..." : "Send Magic Link"}
+                </Button>
+              </form>
+            )}
+            <div className="mt-6 flex flex-col items-center">
+              <span className="text-xs text-gray-500 mb-2">or</span>
+              <Button variant="outline" className="w-full" onClick={handleDemo}>
+                Continue with Demo Account
+              </Button>
             </div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading || sending || !email}
-            >
-              {sending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending Magic Link...
-                </>
-              ) : (
-                "Send Magic Link"
-              )}
-            </Button>
-          </form>
-        )}
+          </CardContent>
+        </Card>
       </DialogContent>
     </Dialog>
   );

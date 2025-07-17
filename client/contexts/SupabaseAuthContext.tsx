@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { ensureUserProfile } from "@/lib/ensureUserProfile";
 
 interface AuthContextType {
   user: User | null;
@@ -13,6 +14,8 @@ interface AuthContextType {
   ) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<{ error: any }>;
+  signInWithDemo: () => Promise<void>;
+  signInWithMagicLink: (email: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,55 +28,9 @@ export function useAuth() {
   return context;
 }
 
-// Helper function to ensure user profile exists in database
-const ensureUserProfileExists = async (user: User) => {
-  try {
-    console.log("🔍 Checking if user profile exists for:", user.id);
-
-    const { data: existingProfile, error: selectError } = await supabase
-      .from("user_profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    if (selectError && selectError.code !== "PGRST116") {
-      console.error("❌ Error checking user profile:", selectError);
-      return;
-    }
-
-    if (!existingProfile) {
-      console.log("➕ Creating user profile for:", user.email);
-
-      const { data: newProfile, error: insertError } = await supabase
-        .from("user_profiles")
-        .insert([
-          {
-            id: user.id,
-            email: user.email,
-            name:
-              user.user_metadata?.name || user.user_metadata?.full_name || null,
-            picture:
-              user.user_metadata?.picture ||
-              user.user_metadata?.avatar_url ||
-              null,
-          },
-        ]);
-
-      if (insertError) {
-        console.error("❌ Error creating user profile:", insertError);
-      } else {
-        console.log("✅ User profile created successfully");
-      }
-    } else {
-      console.log("✅ User profile already exists");
-    }
-  } catch (error) {
-    console.error("❌ Error in ensureUserProfileExists:", error);
-  }
-};
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [userUuid, setUserUuid] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -99,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } as User;
           console.log("Setting demo user:", supabaseUser);
           setUser(supabaseUser);
+          setUserUuid(supabaseUser.id);
           setLoading(false);
           return;
         }
@@ -108,20 +66,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: { session },
         } = await supabase.auth.getSession();
 
-        // If we have a session, ensure user profile exists
         if (session?.user) {
-          console.log(
-            "🎯 Found existing session, ensuring user profile exists:",
-            session.user.id,
-          );
-          await ensureUserProfileExists(session.user);
+          // Ensure user profile exists and get UUID
+          const uuid = await ensureUserProfile(session.user);
+          setUserUuid(uuid);
+        } else {
+          setUserUuid(null);
         }
-
         setUser(session?.user ?? null);
         setLoading(false);
       } catch (error) {
-        console.error("Error in auth check:", error);
         setUser(null);
+        setUserUuid(null);
         setLoading(false);
       }
     };
@@ -132,33 +88,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("🔔 Auth state changed:", {
-        event,
-        session: session?.user?.id,
-        email: session?.user?.email,
-      });
-
-      // Handle sign out events explicitly
       if (event === "SIGNED_OUT") {
-        console.log("🚪 User signed out, clearing state");
         localStorage.removeItem("mock_auth_user");
         setUser(null);
+        setUserUuid(null);
         setLoading(false);
         return;
       }
-
       setUser(session?.user ?? null);
-
-      // Create user profile if it doesn't exist (for real users, not demo)
-      if (
-        session?.user &&
-        (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") &&
-        !localStorage.getItem("mock_auth_user")
-      ) {
-        console.log("🎯 Creating user profile for authenticated user");
-        await ensureUserProfileExists(session.user);
+      if (session?.user) {
+        const uuid = await ensureUserProfile(session.user);
+        setUserUuid(uuid);
+      } else {
+        setUserUuid(null);
       }
-
       setLoading(false);
     });
 
@@ -210,7 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // If sign-up was successful, create user profile and sign in immediately
     if (data.user && !error) {
       console.log("🎯 Creating user profile after sign-up");
-      await ensureUserProfileExists(data.user);
+      const uuid = await ensureUserProfile(data.user);
       
       // Automatically sign in the user (bypass email confirmation)
       const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -235,7 +178,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Sign out from Supabase
     await supabase.auth.signOut();
     setUser(null);
-    // Removed window.location.href = "/" to allow React to update UI
+    setUserUuid(null);
+
+    // Redirect to home page after sign out
+    window.location.href = "/";
   };
 
   const signInWithGoogle = async () => {
@@ -263,13 +209,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error };
   };
 
-  const value: AuthContextType = {
+  const signInWithDemo = async () => {
+    const mockUser = {
+      id: "f589c496-0283-44e6-8db5-aad1778f8f32",
+      email: "demo@example.com",
+      name: "Demo User",
+      picture: "https://randomuser.me/api/portraits/men/1.jpg",
+      provider: "demo",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    localStorage.setItem("mock_auth_user", JSON.stringify(mockUser));
+    window.dispatchEvent(new Event("storage")); // trigger auth update
+  };
+
+  const signInWithMagicLink = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    return { error };
+  };
+
+  const value: AuthContextType & { userUuid: string | null } = {
     user,
     loading,
     signIn,
     signUp,
     signOut,
     signInWithGoogle,
+    signInWithDemo,
+    signInWithMagicLink,
+    userUuid,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
