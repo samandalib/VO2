@@ -34,6 +34,7 @@ import {
   updateBiomarker,
   deleteBiomarker,
 } from "./api/metrics";
+import openaiAssistantRouter from "./api/openai-assistant";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -62,6 +63,9 @@ export function createServer() {
   });
 
   app.get("/api/demo", handleDemo);
+
+  // OpenAI Assistant chat endpoint
+  app.use("/api", openaiAssistantRouter);
 
   // Chat with Assistant
   app.post("/api/chat", chat);
