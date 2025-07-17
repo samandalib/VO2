@@ -293,7 +293,13 @@ export function ProtocolCalendarView({
   };
 
   // Mock logging data for demonstration
+  const isDev = process.env.NODE_ENV === "development";
+
   const getWeekLoggingStatus = (week: number) => {
+    if (!isDev) {
+      // In production, return empty (no mock data)
+      return { completed: [], missing: [] };
+    }
     const mockData = {
       1: {
         completed: ["Baseline VO₂max measurement", "Baseline biomarkers"],
@@ -323,6 +329,10 @@ export function ProtocolCalendarView({
 
   // Mock logged data for specific dates - dynamic based on week and day
   const getDateLoggedData = (date: string, week: number, dayName: string) => {
+    if (!isDev) {
+      // In production, return empty (no mock data)
+      return [];
+    }
     const logs: {
       metric: string;
       value: string;

@@ -25,6 +25,7 @@ import { FloatingChat } from "@/components/FloatingChat";
 import { WeeklyTrackingPanel } from "@/components/dashboard/WeeklyTrackingPanel";
 import { SessionMetricsLogging } from "@/components/dashboard/SessionMetricsLogging";
 import { BloodBiomarkerSection } from "@/components/dashboard/BloodBiomarkerSection";
+import { ProfileModal } from "@/components/dashboard/ProfileModal";
 
 // Hooks
 import { useDashboardData } from "@/hooks/useDashboardData";
@@ -152,6 +153,8 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [isLoggingModalOpen, setIsLoggingModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileName, setProfileName] = useState("");
 
   const selectedProtocol = searchParams.get("protocol");
   const protocolData = selectedProtocol
@@ -161,6 +164,26 @@ export function Dashboard() {
   // Use custom hook for dashboard data
   const { progressStats, userProgress, isLoading } =
     useDashboardData(effectiveUser);
+
+  // Fetch latest profile name when modal closes or after update
+  const fetchProfileName = async (userId: string) => {
+    if (!userId) return;
+    try {
+      const { data: userProfile } = await supabase
+        .from("user_profiles")
+        .select("name")
+        .eq("id", userId)
+        .single();
+      if (userProfile?.name) setProfileName(userProfile.name);
+    } catch (e) {
+      // fallback: do nothing
+    }
+  };
+  useEffect(() => {
+    if (profileModalOpen === false && effectiveUser?.id) {
+      fetchProfileName(effectiveUser.id);
+    }
+  }, [profileModalOpen, effectiveUser?.id]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -200,14 +223,16 @@ export function Dashboard() {
             {/* Progress Stats */}
             <div className="flex flex-col gap-4">
               <ProgressStatsGrid progressStats={progressStats} />
-              <Button
-                onClick={handleAddProtocol}
-                className="bg-spotify-green hover:bg-spotify-green/90 text-white font-medium rounded-full px-6 py-2 shadow-lg hover:shadow-xl transition-all duration-200 w-full"
-                size="sm"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Training Protocol
-              </Button>
+              {!protocolData && (
+                <Button
+                  onClick={handleAddProtocol}
+                  className="bg-spotify-green hover:bg-spotify-green/90 text-white font-medium rounded-full px-6 py-2 shadow-lg hover:shadow-xl transition-all duration-200 w-full"
+                  size="sm"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Training Protocol
+                </Button>
+              )}
             </div>
 
             {/* Active Protocol if available */}
@@ -231,7 +256,12 @@ export function Dashboard() {
               onStartDateChange={setProtocolStartDate}
               onChangeProtocol={handleChangeProtocol}
             />
-            <ProtocolCalendarView protocol={protocolData.id} />
+            <ProtocolCalendarView
+              protocolName={protocolData.name || "Training Protocol"}
+              protocolDuration={getProtocolDuration(protocolData.name || "")}
+              sessionsPerWeek={getProtocolSessionsPerWeek(protocolData.name || "")}
+              startDate={protocolStartDate}
+            />
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -301,24 +331,34 @@ export function Dashboard() {
     );
   }
 
+  // Pass the up-to-date name to DashboardHeader
+  const userForHeader = {
+    ...effectiveUser,
+    name: profileName || effectiveUser?.name || "",
+  };
+
   return (
     <DashboardLayout>
       {/* Desktop Layout - Show all content */}
       <div className="hidden md:block">
         {/* Dashboard Header */}
-        <DashboardHeader user={effectiveUser} onSignOut={handleSignOut} />
+        <DashboardHeader user={userForHeader} onSignOut={handleSignOut} />
+        {/* Profile Modal (hidden trigger, but can be opened elsewhere) */}
+        <ProfileModal user={userForHeader} open={profileModalOpen} onClose={() => setProfileModalOpen(false)} />
         {/* Dashboard Grid */}
         <div className="flex flex-col gap-8">
           <div className="flex flex-col md:flex-row gap-4 md:gap-6 md:justify-between md:items-start">
             <ProgressStatsGrid progressStats={progressStats} />
-            <Button
-              onClick={handleAddProtocol}
-              className="bg-spotify-green hover:bg-spotify-green/90 text-white font-medium rounded-full px-6 py-2 shadow-lg hover:shadow-xl transition-all duration-200 w-full md:w-[300px] md:flex-shrink-0"
-              size="sm"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Training Protocol
-            </Button>
+            {!protocolData && (
+              <Button
+                onClick={handleAddProtocol}
+                className="bg-spotify-green hover:bg-spotify-green/90 text-white font-medium rounded-full px-6 py-2 shadow-lg hover:shadow-xl transition-all duration-200 w-full md:w-[300px] md:flex-shrink-0"
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Training Protocol
+              </Button>
+            )}
           </div>
 
           {/* Protocol Card and Calendar Side-by-Side */}
