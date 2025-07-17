@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { VerificationCodeService } from "@/lib/verification-code";
+import { EmailService } from "@/lib/email-service";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -55,6 +57,22 @@ export function AuthModal({
     name: "",
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [step, setStep] = useState<'form' | 'verify'>('form');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [codeError, setCodeError] = useState('');
+  const [countdown, setCountdown] = useState(600); // 10 minutes in seconds
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [pendingEmail, setPendingEmail] = useState('');
+  const [pendingPassword, setPendingPassword] = useState('');
+  const [pendingName, setPendingName] = useState('');
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (step === 'verify' && countdown > 0) {
+      timerRef.current = setTimeout(() => setCountdown(c => c - 1), 1000);
+    }
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [step, countdown]);
 
   const validateForm = (isSignUp: boolean): boolean => {
     const errors: Record<string, string> = {};
@@ -116,21 +134,32 @@ export function AuthModal({
 
   const handleSignUp = async () => {
     if (!validateForm(true)) return;
+    setError('');
+    setCodeError('');
+    // Generate and send code
+    const codeObj = VerificationCodeService.createCode(formData.email);
+    await EmailService.sendVerificationCode(formData.email, codeObj.code, formData.name);
+    setPendingEmail(formData.email);
+    setPendingPassword(formData.password);
+    setPendingName(formData.name);
+    setStep('verify');
+    setCountdown(600);
+  };
 
+  const handleVerifyCode = async () => {
+    setCodeError('');
+    const result = VerificationCodeService.verifyCode(pendingEmail, verificationCode);
+    if (!result.valid) {
+      setCodeError(result.message);
+      return;
+    }
+    // Create user and sign in
     try {
-      const { error } = await signUp(
-        formData.email,
-        formData.password,
-        formData.name,
-      );
-
+      const { error } = await signUp(pendingEmail, pendingPassword, pendingName);
       if (error) {
         setError(error.message);
         return;
       }
-
-      // Sign up successful - user is automatically signed in
-      console.log("✅ Sign up successful, redirecting to dashboard");
       onSuccess?.();
       onClose();
       window.location.href = "/dashboard";
@@ -169,290 +198,329 @@ export function AuthModal({
             {description}
           </DialogDescription>
         </DialogHeader>
+        {step === 'form' && (
+          <Tabs
+            value={activeTab}
+            onValueChange={handleTabChange}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="signin">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
 
-        <Tabs
-          value={activeTab}
-          onValueChange={handleTabChange}
-          className="w-full"
-        >
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="signin">Sign In</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
-          </TabsList>
+            {/* Error Display */}
+            {error && (
+              <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
+                <AlertCircle className="w-4 h-4" />
+                <span>{error}</span>
+              </div>
+            )}
 
-          {/* Error Display */}
-          {error && (
-            <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle className="w-4 h-4" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Sign In Tab */}
-          <TabsContent value="signin">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Welcome back</CardTitle>
-                <CardDescription>Sign in to your account</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signin-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        handleInputChange("email", e.target.value)
-                      }
-                      className={`pl-10 ${formErrors.email ? "border-red-500" : ""}`}
-                      disabled={isLoading}
-                    />
+            {/* Sign In Tab */}
+            <TabsContent value="signin">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Welcome back</CardTitle>
+                  <CardDescription>Sign in to your account</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signin-email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signin-email"
+                        type="email"
+                        placeholder="Enter your email"
+                        value={formData.email}
+                        onChange={(e) =>
+                          handleInputChange("email", e.target.value)
+                        }
+                        className={`pl-10 ${formErrors.email ? "border-red-500" : ""}`}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    {formErrors.email && (
+                      <p className="text-sm text-red-600">{formErrors.email}</p>
+                    )}
                   </div>
-                  {formErrors.email && (
-                    <p className="text-sm text-red-600">{formErrors.email}</p>
-                  )}
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="signin-password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signin-password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={formData.password}
-                      onChange={(e) =>
-                        handleInputChange("password", e.target.value)
-                      }
-                      className={`pl-10 pr-10 ${formErrors.password ? "border-red-500" : ""}`}
-                      disabled={isLoading}
-                    />
-                    <Button
+                  <div className="space-y-2">
+                    <Label htmlFor="signin-password">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signin-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={formData.password}
+                        onChange={(e) =>
+                          handleInputChange("password", e.target.value)
+                        }
+                        className={`pl-10 pr-10 ${formErrors.password ? "border-red-500" : ""}`}
+                        disabled={isLoading}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoading}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    {formErrors.password && (
+                      <p className="text-sm text-red-600">
+                        {formErrors.password}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end mb-4">
+                    <button
                       type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => {
+                        if (formData.email) {
+                          alert(
+                            `Password reset link would be sent to ${formData.email}`,
+                          );
+                        } else {
+                          alert("Please enter your email first");
+                        }
+                      }}
+                      className="text-sm text-primary hover:underline"
                       disabled={isLoading}
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
+                      Forgot password?
+                    </button>
                   </div>
-                  {formErrors.password && (
-                    <p className="text-sm text-red-600">
-                      {formErrors.password}
-                    </p>
-                  )}
-                </div>
 
-                <div className="flex justify-end mb-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (formData.email) {
-                        alert(
-                          `Password reset link would be sent to ${formData.email}`,
-                        );
-                      } else {
-                        alert("Please enter your email first");
-                      }
-                    }}
-                    className="text-sm text-primary hover:underline"
+                  <Button
+                    onClick={handleSignIn}
+                    className="w-full"
                     disabled={isLoading}
                   >
-                    Forgot password?
-                  </button>
-                </div>
-
-                <Button
-                  onClick={handleSignIn}
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    "Sign In"
-                  )}
-                </Button>
-
-                {/* Demo Account Button for Development */}
-                {import.meta.env.DEV && (
-                  <Button
-                    onClick={() => {
-                      const mockUser = {
-                        id: crypto.randomUUID(),
-                        email: "demo@vo2max.app",
-                        name: "Demo User",
-                        picture: "https://via.placeholder.com/40",
-                        provider: "demo",
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                      };
-
-                      localStorage.setItem(
-                        "mock_auth_user",
-                        JSON.stringify(mockUser),
-                      );
-                      console.log("✅ Demo account created");
-                      onSuccess?.();
-                      onClose();
-                      window.location.href = "/dashboard";
-                    }}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white mt-2"
-                  >
-                    🚀 Continue with Demo Account
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Signing in...
+                      </>
+                    ) : (
+                      "Sign In"
+                    )}
                   </Button>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* Sign Up Tab */}
-          <TabsContent value="signup">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Create account</CardTitle>
-                <CardDescription>Start your VO₂max journey</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="Enter your full name"
-                      value={formData.name}
-                      onChange={(e) =>
-                        handleInputChange("name", e.target.value)
-                      }
-                      className={`pl-10 ${formErrors.name ? "border-red-500" : ""}`}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  {formErrors.name && (
-                    <p className="text-sm text-red-600">{formErrors.name}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        handleInputChange("email", e.target.value)
-                      }
-                      className={`pl-10 ${formErrors.email ? "border-red-500" : ""}`}
-                      disabled={isLoading}
-                    />
-                  </div>
-                  {formErrors.email && (
-                    <p className="text-sm text-red-600">{formErrors.email}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signup-password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Create a password"
-                      value={formData.password}
-                      onChange={(e) =>
-                        handleInputChange("password", e.target.value)
-                      }
-                      className={`pl-10 pr-10 ${formErrors.password ? "border-red-500" : ""}`}
-                      disabled={isLoading}
-                    />
+                  {/* Demo Account Button for Development */}
+                  {import.meta.env.DEV && (
                     <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                      disabled={isLoading}
+                      onClick={() => {
+                        const mockUser = {
+                          id: crypto.randomUUID(),
+                          email: "demo@vo2max.app",
+                          name: "Demo User",
+                          picture: "https://via.placeholder.com/40",
+                          provider: "demo",
+                          createdAt: new Date().toISOString(),
+                          updatedAt: new Date().toISOString(),
+                        };
+
+                        localStorage.setItem(
+                          "mock_auth_user",
+                          JSON.stringify(mockUser),
+                        );
+                        console.log("✅ Demo account created");
+                        onSuccess?.();
+                        onClose();
+                        window.location.href = "/dashboard";
+                      }}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white mt-2"
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
+                      🚀 Continue with Demo Account
                     </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Sign Up Tab */}
+            <TabsContent value="signup">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Create account</CardTitle>
+                  <CardDescription>Start your VO₂max journey</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-name">Full Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-name"
+                        type="text"
+                        placeholder="Enter your full name"
+                        value={formData.name}
+                        onChange={(e) =>
+                          handleInputChange("name", e.target.value)
+                        }
+                        className={`pl-10 ${formErrors.name ? "border-red-500" : ""}`}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    {formErrors.name && (
+                      <p className="text-sm text-red-600">{formErrors.name}</p>
+                    )}
                   </div>
-                  {formErrors.password && (
-                    <p className="text-sm text-red-600">
-                      {formErrors.password}
-                    </p>
-                  )}
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="signup-confirm-password">
-                    Confirm Password
-                  </Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="signup-confirm-password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Confirm your password"
-                      value={formData.confirmPassword}
-                      onChange={(e) =>
-                        handleInputChange("confirmPassword", e.target.value)
-                      }
-                      className={`pl-10 ${formErrors.confirmPassword ? "border-red-500" : ""}`}
-                      disabled={isLoading}
-                    />
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="Enter your email"
+                        value={formData.email}
+                        onChange={(e) =>
+                          handleInputChange("email", e.target.value)
+                        }
+                        className={`pl-10 ${formErrors.email ? "border-red-500" : ""}`}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    {formErrors.email && (
+                      <p className="text-sm text-red-600">{formErrors.email}</p>
+                    )}
                   </div>
-                  {formErrors.confirmPassword && (
-                    <p className="text-sm text-red-600">
-                      {formErrors.confirmPassword}
-                    </p>
-                  )}
-                </div>
 
-                <Button
-                  onClick={handleSignUp}
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating account...
-                    </>
-                  ) : (
-                    "Create Account"
-                  )}
-                </Button>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Create a password"
+                        value={formData.password}
+                        onChange={(e) =>
+                          handleInputChange("password", e.target.value)
+                        }
+                        className={`pl-10 pr-10 ${formErrors.password ? "border-red-500" : ""}`}
+                        disabled={isLoading}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoading}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                    {formErrors.password && (
+                      <p className="text-sm text-red-600">
+                        {formErrors.password}
+                      </p>
+                    )}
+                  </div>
 
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-confirm-password">
+                      Confirm Password
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-confirm-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Confirm your password"
+                        value={formData.confirmPassword}
+                        onChange={(e) =>
+                          handleInputChange("confirmPassword", e.target.value)
+                        }
+                        className={`pl-10 ${formErrors.confirmPassword ? "border-red-500" : ""}`}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    {formErrors.confirmPassword && (
+                      <p className="text-sm text-red-600">
+                        {formErrors.confirmPassword}
+                      </p>
+                    )}
+                  </div>
 
-        {/* Email verification screen removed - users are automatically signed in */}
+                  <Button
+                    onClick={handleSignUp}
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating account...
+                      </>
+                    ) : (
+                      "Create Account"
+                    )}
+                  </Button>
+
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
+        {step === 'verify' && (
+          <div className="flex flex-col items-center gap-4 p-4">
+            <h2 className="text-lg font-semibold">Enter Verification Code</h2>
+            <p className="text-muted-foreground text-center">
+              We sent a 4-digit code to <span className="font-medium">{pendingEmail}</span>.<br />
+              Please enter it below. This code will expire in {Math.floor(countdown/60)}:{(countdown%60).toString().padStart(2,'0')} minutes.
+            </p>
+            <Input
+              type="text"
+              maxLength={4}
+              value={verificationCode}
+              onChange={e => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+              className="text-center text-xl tracking-widest"
+              placeholder="0000"
+              disabled={isLoading || countdown === 0}
+            />
+            {codeError && <p className="text-red-600 text-sm">{codeError}</p>}
+            <Button
+              onClick={handleVerifyCode}
+              className="w-full"
+              disabled={isLoading || verificationCode.length !== 4 || countdown === 0}
+            >
+              Verify
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                const codeObj = VerificationCodeService.createCode(pendingEmail);
+                await EmailService.resendVerificationCode(pendingEmail, codeObj.code, pendingName);
+                setCountdown(600);
+                setVerificationCode('');
+                setCodeError('');
+              }}
+              disabled={isLoading || countdown === 0}
+            >
+              Resend Code
+            </Button>
+            {countdown === 0 && <p className="text-red-600 text-sm">Code expired. Please resend code.</p>}
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
