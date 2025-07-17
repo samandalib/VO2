@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { v4 as uuidv4 } from "uuid";
 
 export interface BiomarkerEntry {
   id?: string;
@@ -45,16 +46,21 @@ export class BiomarkersService {
     data: Omit<BiomarkerEntry, "id" | "createdAt" | "updatedAt">,
   ): Promise<BiomarkerEntry> {
     try {
+      const newId = uuidv4();
+      const now = new Date().toISOString();
       const { data: result, error } = await supabase
         .from("biomarkers")
         .insert([
           {
-            userId: userId, // Updated to match schema
+            id: newId,
+            userId: userId,
             date: data.date,
             hemoglobin: data.hemoglobin,
             ferritin: data.ferritin,
             crp: data.crp,
             glucose: data.glucose,
+            createdAt: now,
+            updatedAt: now,
           },
         ])
         .select()

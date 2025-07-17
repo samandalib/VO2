@@ -372,9 +372,7 @@ export function WeeklyTrackingPanel({ userId }: WeeklyTrackingPanelProps) {
                       <Calendar className="w-4 h-4 text-muted-foreground" />
                       <div>
                         <span className="font-medium">
-                          {new Date(
-                            entry.date + "T00:00:00",
-                          ).toLocaleDateString()}
+                          {entry.date && !isNaN(new Date(entry.date)) ? new Date(entry.date).toLocaleDateString() : "No Date"}
                         </span>
                         {entry.notes && (
                           <p className="text-xs text-muted-foreground truncate max-w-32">
