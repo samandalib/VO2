@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { v4 as uuidv4 } from "uuid";
 
 export interface SessionMetrics {
   id?: string;
@@ -45,10 +46,12 @@ export class SessionMetricsService {
     data: Omit<SessionMetrics, "id" | "createdAt" | "updatedAt">,
   ): Promise<SessionMetrics> {
     try {
+      const newId = uuidv4();
       const { data: result, error } = await supabase
         .from("session_metrics")
         .insert([
           {
+            id: newId,
             userId: userId, // Updated to match schema
             date: data.date,
             maxHR: data.maxHR, // Updated to match schema

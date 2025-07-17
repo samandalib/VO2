@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { v4 as uuidv4 } from "uuid";
 
 export interface WeeklyMetrics {
   id?: string;
@@ -43,10 +44,12 @@ export class WeeklyMetricsService {
     data: Omit<WeeklyMetrics, "id" | "createdAt" | "updatedAt">,
   ): Promise<WeeklyMetrics> {
     try {
+      const newId = uuidv4();
       const { data: result, error } = await supabase
         .from("weekly_metrics")
         .insert([
           {
+            id: newId,
             userId: userId, // Updated to match schema
             date: data.date,
             restingHeartRate: data.restingHeartRate, // Updated to match schema
