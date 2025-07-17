@@ -7,6 +7,15 @@ export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check for error in URL hash (e.g., magic link expired)
+    const hash = window.location.hash;
+    if (hash.includes('error=')) {
+      const params = new URLSearchParams(hash.replace(/^#/, ''));
+      const errorDescription = params.get('error_description') || 'Authentication failed. Please try again.';
+      setError(decodeURIComponent(errorDescription));
+      setTimeout(() => navigate("/"), 4000);
+      return;
+    }
     const handleAuthCallback = async () => {
       try {
         console.log("🔄 Processing OAuth callback...");
