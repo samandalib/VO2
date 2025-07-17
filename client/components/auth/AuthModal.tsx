@@ -111,15 +111,14 @@ export function AuthModal({
                 </Button>
               </form>
             )}
-            <div className="mt-6 flex flex-col items-center">
-              <span className="text-xs text-gray-500 mb-2">or</span>
-              {/* Demo Account Button for Development */}
-              {import.meta.env.DEV ? (
+            {import.meta.env.DEV ? (
+              <>
+                <span className="text-xs text-gray-500 mb-2">or</span>
                 <Button variant="outline" className="w-full" onClick={handleDemo}>
                   Continue with Demo Account
                 </Button>
-              ) : null}
-            </div>
+              </>
+            ) : null}
           </CardContent>
         </Card>
       </DialogContent>

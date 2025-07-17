@@ -45,6 +45,7 @@ export class WeeklyMetricsService {
   ): Promise<WeeklyMetrics> {
     try {
       const newId = uuidv4();
+      const now = new Date().toISOString();
       const { data: result, error } = await supabase
         .from("weekly_metrics")
         .insert([
@@ -55,6 +56,8 @@ export class WeeklyMetricsService {
             restingHeartRate: data.restingHeartRate, // Updated to match schema
             vo2max: data.vo2max,
             notes: data.notes,
+            createdAt: now,
+            updatedAt: now,
           },
         ])
         .select()

@@ -47,6 +47,7 @@ export class SessionMetricsService {
   ): Promise<SessionMetrics> {
     try {
       const newId = uuidv4();
+      const now = new Date().toISOString();
       const { data: result, error } = await supabase
         .from("session_metrics")
         .insert([
@@ -58,6 +59,8 @@ export class SessionMetricsService {
             avgHR: data.avgHR, // Updated to match schema
             sessionType: data.sessionType, // Updated to match schema
             notes: data.notes,
+            createdAt: now,
+            updatedAt: now,
           },
         ])
         .select()
