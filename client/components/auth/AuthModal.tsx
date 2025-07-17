@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,26 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Loader2,
-  Eye,
-  EyeOff,
-  Mail,
-  Lock,
-  User,
-  AlertCircle,
-} from "lucide-react";
+import { Mail, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
-import { VerificationCodeService } from "@/lib/verification-code";
-import { EmailService } from "@/lib/email-service";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -45,148 +27,35 @@ export function AuthModal({
   description = "Sign in to track your progress and access personalized training protocols",
   onSuccess,
 }: AuthModalProps) {
-  const { signIn, signUp, signInWithGoogle, loading: isLoading } = useAuth();
-
-  const [activeTab, setActiveTab] = useState<"signin" | "signup">("signin");
-  const [showPassword, setShowPassword] = useState(false);
+  const { loading: isLoading } = useAuth();
+  const [email, setEmail] = useState("");
   const [error, setError] = useState<string>("");
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
-    name: "",
-  });
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [step, setStep] = useState<'form' | 'verify'>('form');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [codeError, setCodeError] = useState('');
-  const [countdown, setCountdown] = useState(600); // 10 minutes in seconds
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const [pendingEmail, setPendingEmail] = useState('');
-  const [pendingPassword, setPendingPassword] = useState('');
-  const [pendingName, setPendingName] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [sending, setSending] = useState(false);
 
-  // Countdown timer effect
-  useEffect(() => {
-    if (step === 'verify' && countdown > 0) {
-      timerRef.current = setTimeout(() => setCountdown(c => c - 1), 1000);
-    }
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [step, countdown]);
-
-  const validateForm = (isSignUp: boolean): boolean => {
-    const errors: Record<string, string> = {};
-
-    // Email validation
-    if (!formData.email) {
-      errors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = "Please enter a valid email";
-    }
-
-    // Password validation
-    if (!formData.password) {
-      errors.password = "Password is required";
-    } else if (formData.password.length < 6) {
-      errors.password = "Password must be at least 6 characters";
-    }
-
-    // Sign up specific validations
-    if (isSignUp) {
-      if (!formData.name) {
-        errors.name = "Name is required";
-      }
-      if (formData.password !== formData.confirmPassword) {
-        errors.confirmPassword = "Passwords do not match";
-      }
-    }
-
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const clearError = () => setError("");
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (formErrors[field]) {
-      setFormErrors((prev) => ({ ...prev, [field]: "" }));
-    }
-    clearError();
-  };
-
-  const handleSignIn = async () => {
-    if (!validateForm(false)) return;
-
+  const handleSendMagicLink = async () => {
+    setError("");
+    setSending(true);
     try {
-      const { error } = await signIn(formData.email, formData.password);
+      // Use Supabase magic link
+      const { supabase } = await import("@/lib/supabase");
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
       if (error) {
         setError(error.message);
+        setSending(false);
         return;
       }
-      onSuccess?.();
-      onClose();
-    } catch (error) {
-      setError("An unexpected error occurred");
+      setSuccess(true);
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred");
+    } finally {
+      setSending(false);
     }
-  };
-
-  const handleSignUp = async () => {
-    if (!validateForm(true)) return;
-    setError('');
-    setCodeError('');
-    // Generate and send code
-    const codeObj = VerificationCodeService.createCode(formData.email);
-    await EmailService.sendVerificationCode(formData.email, codeObj.code, formData.name);
-    setPendingEmail(formData.email);
-    setPendingPassword(formData.password);
-    setPendingName(formData.name);
-    setStep('verify');
-    setCountdown(600);
-  };
-
-  const handleVerifyCode = async () => {
-    setCodeError('');
-    const result = VerificationCodeService.verifyCode(pendingEmail, verificationCode);
-    if (!result.valid) {
-      setCodeError(result.message);
-      return;
-    }
-    // Create user and sign in
-    try {
-      const { error } = await signUp(pendingEmail, pendingPassword, pendingName);
-      if (error) {
-        setError(error.message);
-        return;
-      }
-      onSuccess?.();
-      onClose();
-      window.location.href = "/dashboard";
-    } catch (error) {
-      setError("An unexpected error occurred");
-    }
-  };
-
-  // Google OAuth temporarily disabled
-  // const handleGoogleSignIn = async () => {
-  //   // Implementation removed
-  // };
-
-  const resetForm = () => {
-    setFormData({
-      email: "",
-      password: "",
-      confirmPassword: "",
-      name: "",
-    });
-    setFormErrors({});
-    clearError();
-  };
-
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab as "signin" | "signup");
-    resetForm();
   };
 
   return (
@@ -198,328 +67,57 @@ export function AuthModal({
             {description}
           </DialogDescription>
         </DialogHeader>
-        {step === 'form' && (
-          <Tabs
-            value={activeTab}
-            onValueChange={handleTabChange}
-            className="w-full"
+        {success ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="text-green-600 text-lg font-semibold mb-4">Check your email!</div>
+            <div className="mb-6 text-center">A magic login link has been sent to <span className="font-mono">{email}</span>.<br />Click the link in your inbox to sign in.</div>
+            <Button onClick={onClose}>Close</Button>
+          </div>
+        ) : (
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              handleSendMagicLink();
+            }}
+            className="space-y-6"
           >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
-
-            {/* Error Display */}
             {error && (
               <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
                 <AlertCircle className="w-4 h-4" />
                 <span>{error}</span>
               </div>
             )}
-
-            {/* Sign In Tab */}
-            <TabsContent value="signin">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Welcome back</CardTitle>
-                  <CardDescription>Sign in to your account</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signin-email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={formData.email}
-                        onChange={(e) =>
-                          handleInputChange("email", e.target.value)
-                        }
-                        className={`pl-10 ${formErrors.email ? "border-red-500" : ""}`}
-                        disabled={isLoading}
-                      />
-                    </div>
-                    {formErrors.email && (
-                      <p className="text-sm text-red-600">{formErrors.email}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signin-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter your password"
-                        value={formData.password}
-                        onChange={(e) =>
-                          handleInputChange("password", e.target.value)
-                        }
-                        className={`pl-10 pr-10 ${formErrors.password ? "border-red-500" : ""}`}
-                        disabled={isLoading}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={isLoading}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                    {formErrors.password && (
-                      <p className="text-sm text-red-600">
-                        {formErrors.password}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex justify-end mb-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (formData.email) {
-                          alert(
-                            `Password reset link would be sent to ${formData.email}`,
-                          );
-                        } else {
-                          alert("Please enter your email first");
-                        }
-                      }}
-                      className="text-sm text-primary hover:underline"
-                      disabled={isLoading}
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
-
-                  <Button
-                    onClick={handleSignIn}
-                    className="w-full"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
-                      </>
-                    ) : (
-                      "Sign In"
-                    )}
-                  </Button>
-
-                  {/* Demo Account Button for Development */}
-                  {import.meta.env.DEV && (
-                    <Button
-                      onClick={() => {
-                        const mockUser = {
-                          id: crypto.randomUUID(),
-                          email: "demo@vo2max.app",
-                          name: "Demo User",
-                          picture: "https://via.placeholder.com/40",
-                          provider: "demo",
-                          createdAt: new Date().toISOString(),
-                          updatedAt: new Date().toISOString(),
-                        };
-
-                        localStorage.setItem(
-                          "mock_auth_user",
-                          JSON.stringify(mockUser),
-                        );
-                        console.log("✅ Demo account created");
-                        onSuccess?.();
-                        onClose();
-                        window.location.href = "/dashboard";
-                      }}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white mt-2"
-                    >
-                      🚀 Continue with Demo Account
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Sign Up Tab */}
-            <TabsContent value="signup">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Create account</CardTitle>
-                  <CardDescription>Start your VO₂max journey</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-name"
-                        type="text"
-                        placeholder="Enter your full name"
-                        value={formData.name}
-                        onChange={(e) =>
-                          handleInputChange("name", e.target.value)
-                        }
-                        className={`pl-10 ${formErrors.name ? "border-red-500" : ""}`}
-                        disabled={isLoading}
-                      />
-                    </div>
-                    {formErrors.name && (
-                      <p className="text-sm text-red-600">{formErrors.name}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={formData.email}
-                        onChange={(e) =>
-                          handleInputChange("email", e.target.value)
-                        }
-                        className={`pl-10 ${formErrors.email ? "border-red-500" : ""}`}
-                        disabled={isLoading}
-                      />
-                    </div>
-                    {formErrors.email && (
-                      <p className="text-sm text-red-600">{formErrors.email}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Create a password"
-                        value={formData.password}
-                        onChange={(e) =>
-                          handleInputChange("password", e.target.value)
-                        }
-                        className={`pl-10 pr-10 ${formErrors.password ? "border-red-500" : ""}`}
-                        disabled={isLoading}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={isLoading}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                    {formErrors.password && (
-                      <p className="text-sm text-red-600">
-                        {formErrors.password}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-confirm-password">
-                      Confirm Password
-                    </Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signup-confirm-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Confirm your password"
-                        value={formData.confirmPassword}
-                        onChange={(e) =>
-                          handleInputChange("confirmPassword", e.target.value)
-                        }
-                        className={`pl-10 ${formErrors.confirmPassword ? "border-red-500" : ""}`}
-                        disabled={isLoading}
-                      />
-                    </div>
-                    {formErrors.confirmPassword && (
-                      <p className="text-sm text-red-600">
-                        {formErrors.confirmPassword}
-                      </p>
-                    )}
-                  </div>
-
-                  <Button
-                    onClick={handleSignUp}
-                    className="w-full"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating account...
-                      </>
-                    ) : (
-                      "Create Account"
-                    )}
-                  </Button>
-
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        )}
-        {step === 'verify' && (
-          <div className="flex flex-col items-center gap-4 p-4">
-            <h2 className="text-lg font-semibold">Enter Verification Code</h2>
-            <p className="text-muted-foreground text-center">
-              We sent a 4-digit code to <span className="font-medium">{pendingEmail}</span>.<br />
-              Please enter it below. This code will expire in {Math.floor(countdown/60)}:{(countdown%60).toString().padStart(2,'0')} minutes.
-            </p>
-            <Input
-              type="text"
-              maxLength={4}
-              value={verificationCode}
-              onChange={e => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-              className="text-center text-xl tracking-widest"
-              placeholder="0000"
-              disabled={isLoading || countdown === 0}
-            />
-            {codeError && <p className="text-red-600 text-sm">{codeError}</p>}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="pl-10"
+                  required
+                  disabled={isLoading || sending}
+                />
+              </div>
+            </div>
             <Button
-              onClick={handleVerifyCode}
+              type="submit"
               className="w-full"
-              disabled={isLoading || verificationCode.length !== 4 || countdown === 0}
+              disabled={isLoading || sending || !email}
             >
-              Verify
+              {sending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending Magic Link...
+                </>
+              ) : (
+                "Send Magic Link"
+              )}
             </Button>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                const codeObj = VerificationCodeService.createCode(pendingEmail);
-                await EmailService.resendVerificationCode(pendingEmail, codeObj.code, pendingName);
-                setCountdown(600);
-                setVerificationCode('');
-                setCodeError('');
-              }}
-              disabled={isLoading || countdown === 0}
-            >
-              Resend Code
-            </Button>
-            {countdown === 0 && <p className="text-red-600 text-sm">Code expired. Please resend code.</p>}
-          </div>
+          </form>
         )}
       </DialogContent>
     </Dialog>

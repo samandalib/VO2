@@ -235,9 +235,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Sign out from Supabase
     await supabase.auth.signOut();
     setUser(null);
-
-    // Redirect to home page after sign out
-    window.location.href = "/";
+    // Removed window.location.href = "/" to allow React to update UI
   };
 
   const signInWithGoogle = async () => {
