@@ -26,6 +26,7 @@ import { VO2MaxData } from "@shared/api";
 import { SimpleAuthModal } from "@/components/auth/SimpleAuthModal";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { useNavigate } from "react-router-dom";
+import { UserProtocolsService } from "@/lib/api/userProtocols";
 
 interface ExtendedVO2MaxData extends VO2MaxData {
   ageGroup?: string;
@@ -54,6 +55,7 @@ export function VO2MaxForm({
 
   // Safe auth hooks with error handling
   let isAuthenticated = false;
+  let user = null;
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingCallback, setPendingCallback] = useState<(() => void) | null>(
     null,
@@ -62,6 +64,7 @@ export function VO2MaxForm({
   try {
     const authState = useAuth();
     isAuthenticated = !!authState.user;
+    user = authState.user;
   } catch (error) {
     console.error("Auth hooks error:", error);
   }
@@ -1723,7 +1726,7 @@ export function VO2MaxForm({
                               protocol.id,
                             );
 
-                            const handleProtocolSelection = () => {
+                            const handleProtocolSelection = async () => {
                               console.log(
                                 "Executing protocol selection for:",
                                 protocol.id,
@@ -1745,6 +1748,16 @@ export function VO2MaxForm({
                                 restingHeartRate:
                                   formData.restingHeartRate || 60,
                               };
+
+                              // Register protocol for user
+                              try {
+                                if (isAuthenticated && user?.id) {
+                                  await UserProtocolsService.setCurrentProtocol(user.id, protocol.id);
+                                }
+                              } catch (err) {
+                                console.error("Failed to register protocol for user:", err);
+                                // Optionally show a toast or error message
+                              }
 
                               // Navigate to dashboard with protocol data
                               navigate(`/dashboard?protocol=${protocol.id}`);

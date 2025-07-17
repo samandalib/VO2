@@ -432,9 +432,10 @@ export function BloodBiomarkerSection({ userId }: BloodBiomarkerSectionProps) {
                     <div className="flex items-center gap-2 mb-2">
                       <Calendar className="w-4 h-4 text-muted-foreground" />
                       <span className="font-medium">
-                        {new Date(
-                          entry.date + "T00:00:00",
-                        ).toLocaleDateString()}
+                        {(() => {
+                          const d = new Date(entry.date);
+                          return !isNaN(d.getTime()) ? d.toLocaleDateString() : "Invalid date";
+                        })()}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
