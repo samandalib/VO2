@@ -37,8 +37,11 @@ export function DashboardHeader({ user, onSignOut }: DashboardHeaderProps) {
         <Button
           variant="outline"
           size="sm"
-          onClick={onSignOut}
-          className="rounded-full border-spotify-green/30 text-spotify-green hover:bg-spotify-green/10 transition-all duration-200 p-2 h-10 w-10 flex items-center justify-center"
+          onClick={() => {
+            console.log("DashboardHeader: Sign out button clicked");
+            onSignOut();
+          }}
+          className="rounded-full border-spotify-green/30 text-spotify-green hover:bg-spotify-green/10 transition-all duration-200 p-2 h-10 w-10 flex items-center justify-center cursor-pointer relative z-50"
           title="Sign Out"
         >
           <LogOut className="w-5 h-5" />

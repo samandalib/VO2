@@ -34,10 +34,13 @@ export function UserInfo({
             <span className="font-mono">{user.email}</span>
           </div>
           <Button
-            onClick={signOut}
+            onClick={() => {
+              console.log("UserInfo: Sign out button clicked");
+              signOut();
+            }}
             variant="outline"
             size="sm"
-            className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300"
+            className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300 cursor-pointer relative z-50"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Sign Out

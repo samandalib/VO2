@@ -28,16 +28,19 @@ export function ProtocolPicker() {
     <div className="min-h-screen bg-background">
       {/* User Info Header */}
       {user && (
-        <div className="absolute top-6 left-6 z-10 flex items-center gap-3">
+        <div className="absolute top-6 left-6 z-50 flex items-center gap-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/80 backdrop-blur-sm px-3 py-2 rounded-md border">
             <UserIcon className="w-4 h-4" />
             <span className="font-mono">{user.email}</span>
           </div>
           <Button
-            onClick={signOut}
+            onClick={() => {
+              console.log("ProtocolPicker: Sign out button clicked");
+              signOut();
+            }}
             variant="outline"
             size="sm"
-            className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300"
+            className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300 cursor-pointer relative z-50"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Sign Out

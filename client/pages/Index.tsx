@@ -358,7 +358,7 @@ export default function Index() {
   return (
     <div className="min-h-screen">
       {/* Header with Theme Toggle and Auth Button */}
-      <div className="absolute top-0 right-0 p-6 z-10 flex items-center gap-3">
+      <div className="absolute top-0 right-0 p-6 z-50 flex items-center gap-3">
         <ThemeToggle />
         {user ? (
           <div className="flex items-center gap-3">
@@ -367,9 +367,12 @@ export default function Index() {
               <span className="font-mono">{user.email}</span>
             </div>
             <Button
-              onClick={signOut}
+              onClick={() => {
+                console.log("Sign out button clicked");
+                signOut();
+              }}
               variant="outline"
-              className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300"
+              className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300 cursor-pointer relative z-50"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
