@@ -7,14 +7,18 @@ import { TestingProtocolsSection } from "@/components/sections/TestingProtocolsS
 import { TrainingProtocolsSection } from "@/components/sections/TrainingProtocolsSection";
 import { VO2MaxCalculatorSection } from "@/components/sections/VO2MaxCalculatorSection";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { CheckCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle, AlertTriangle, LogIn, LogOut, User } from "lucide-react";
 import { VO2MaxData } from "@shared/api";
 import { DatabaseConnectionTest } from "@/components/debug/DatabaseConnectionTest";
+import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 
 export default function Index() {
   const navigate = useNavigate();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   // Refs for scrolling to sections
   const projectionCalculatorRef = useRef<HTMLDivElement>(null);
@@ -353,7 +357,43 @@ export default function Index() {
   // Always render the main homepage content
   return (
     <div className="min-h-screen">
-      <RagAIAssistantHero />
+      {/* Header with Theme Toggle and Auth Button */}
+      <div className="absolute top-0 right-0 p-6 z-10 flex items-center gap-3">
+        <ThemeToggle />
+        {user ? (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/80 backdrop-blur-sm px-3 py-2 rounded-md">
+              <User className="w-4 h-4" />
+              <span className="font-mono">{user.email}</span>
+            </div>
+            <Button
+              onClick={signOut}
+              variant="outline"
+              className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
+        ) : (
+          <Button
+            onClick={() => setIsAuthModalOpen(true)}
+            variant="outline"
+            className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300"
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            Sign In
+          </Button>
+        )}
+      </div>
+      
+      <RagAIAssistantHero
+        user={user}
+        openAuthModal={() => setIsAuthModalOpen(true)}
+        onNavigateToDashboard={handleNavigateToDashboard}
+        onShowProjectionCalculator={handleShowProjectionCalculator}
+        onShowTestingProtocols={handleShowTestingProtocols}
+      />
       <div ref={projectionCalculatorRef}>
         <VO2MaxCalculatorSection
           calculatorInputs={calculatorInputs}

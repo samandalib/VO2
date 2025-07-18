@@ -5,51 +5,20 @@ import { Textarea } from "../ui/textarea";
 import { BarChart3, TrendingUp, Target, FlaskConical } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 
+interface RagAIAssistantHeroProps {
+  user: any;
+  openAuthModal: () => void;
+  onNavigateToDashboard: () => void;
+  onShowProjectionCalculator: () => void;
+  onShowTestingProtocols: () => void;
+}
+
 const SAMPLE_QUESTIONS = [
   "What is VO₂max and why does it matter?",
   "How can I improve my VO₂max?",
   "What is a good VO₂max for my age?",
   "How do I test my VO₂max at home?",
   "What training protocols boost VO₂max fastest?",
-];
-
-const FEATURES = [
-  {
-    icon: BarChart3,
-    title: "Dashboard",
-    description: "Track your VO₂max progress and training metrics",
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-    hoverColor: "hover:bg-primary/20",
-    onClick: () => window.location.assign("/dashboard"),
-  },
-  {
-    icon: TrendingUp,
-    title: "VO₂Max Projection",
-    description: "Calculate your future cardiovascular fitness trajectory",
-    color: "text-emerald-600 dark:text-emerald-400",
-    bgColor: "bg-emerald-100 dark:bg-emerald-950/30",
-    hoverColor: "hover:bg-emerald-200 dark:hover:bg-emerald-900/40",
-    onClick: () => window.location.assign("/#projection"),
-  },
-  {
-    icon: Target,
-    title: "Training Protocols",
-    description: "Get personalized, science-backed training plans",
-    color: "text-purple-600",
-    bgColor: "bg-purple-100",
-    hoverColor: "hover:bg-purple-200",
-    onClick: () => window.location.assign("/#training-protocols"),
-  },
-  {
-    icon: FlaskConical,
-    title: "Testing Protocols",
-    description: "Learn about VO₂max measurement techniques",
-    color: "text-orange-600",
-    bgColor: "bg-orange-100",
-    hoverColor: "hover:bg-orange-200",
-    onClick: () => window.location.assign("/#testing-protocols"),
-  },
 ];
 
 function useTypingAnimation(samples: string[], speed = 60, pause = 1200) {
@@ -80,7 +49,13 @@ function useTypingAnimation(samples: string[], speed = 60, pause = 1200) {
   return display;
 }
 
-export function RagAIAssistantHero() {
+export function RagAIAssistantHero({
+  user,
+  openAuthModal,
+  onNavigateToDashboard,
+  onShowProjectionCalculator,
+  onShowTestingProtocols,
+}: RagAIAssistantHeroProps) {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasAsked, setHasAsked] = useState(false);
@@ -88,6 +63,48 @@ export function RagAIAssistantHero() {
   const [assistantReply, setAssistantReply] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingSample = useTypingAnimation(SAMPLE_QUESTIONS);
+
+  // Feature card click handlers
+  const featureCards = [
+    {
+      icon: BarChart3,
+      title: "VO₂max Dashboard",
+      onClick: () => {
+        if (user) {
+          onNavigateToDashboard();
+        } else {
+          openAuthModal();
+        }
+      },
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+      hoverColor: "hover:bg-primary/20",
+    },
+    {
+      icon: TrendingUp,
+      title: "VO₂max Projection",
+      onClick: onShowProjectionCalculator,
+      color: "text-emerald-600 dark:text-emerald-400",
+      bgColor: "bg-emerald-100 dark:bg-emerald-950/30",
+      hoverColor: "hover:bg-emerald-200 dark:hover:bg-emerald-900/40",
+    },
+    {
+      icon: Target,
+      title: "VO₂max Training",
+      onClick: () => window.location.assign("/protocols"),
+      color: "text-purple-600",
+      bgColor: "bg-purple-100",
+      hoverColor: "hover:bg-purple-200",
+    },
+    {
+      icon: FlaskConical,
+      title: "VO₂max Testing",
+      onClick: onShowTestingProtocols,
+      color: "text-orange-600",
+      bgColor: "bg-orange-100",
+      hoverColor: "hover:bg-orange-200",
+    },
+  ];
 
   // Fetch answer from RAG backend
   async function fetchAssistantAnswer(userInput: string) {
@@ -142,7 +159,7 @@ export function RagAIAssistantHero() {
         {!hasAsked && (
           <>
             <h1 className="text-4xl md:text-5xl font-extrabold text-center mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              Build your VO₂max knowledge
+              Anything you need to boost your VO₂max
             </h1>
             <p className="text-lg md:text-xl text-center text-muted-foreground mb-6">
               Ask anything about VO₂max, training, protocols, or fitness science.
@@ -208,7 +225,7 @@ export function RagAIAssistantHero() {
         {/* Render current hero cards below */}
         <div className="w-full mt-10 flex flex-col items-center">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-2xl">
-            {FEATURES.map((feature, index) => {
+            {featureCards.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
                 <Card
@@ -222,9 +239,6 @@ export function RagAIAssistantHero() {
                   <h3 className="text-xs font-semibold text-foreground mb-1 group-hover:text-primary transition-colors duration-300">
                     {feature.title}
                   </h3>
-                  <p className="text-[11px] text-muted-foreground leading-snug text-center">
-                    {feature.description}
-                  </p>
                 </Card>
               );
             })}
