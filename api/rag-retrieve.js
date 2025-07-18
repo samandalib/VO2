@@ -1,6 +1,4 @@
-// api/rag-retrieve.cjs
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -46,27 +44,7 @@ async function retrieveChunks(query) {
   return data;
 }
 
-// Simple CLI for local testing
-if (require.main === module) {
-  const readline = require('readline');
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  rl.question('Enter your query: ', async (query) => {
-    rl.close();
-    try {
-      const results = await retrieveChunks(query);
-      console.log('Top chunks:');
-      results.forEach((c, i) => {
-        console.log(`--- Chunk ${i + 1} ---`);
-        console.log(`Filename: ${c.filename}, Index: ${c.chunk_index}`);
-        console.log(c.chunk_text.slice(0, 500) + (c.chunk_text.length > 500 ? '...' : ''));
-      });
-    } catch (err) {
-      console.error('Error:', err);
-    }
-  });
-}
-
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method Not Allowed' });
     return;
@@ -80,6 +58,7 @@ module.exports = async (req, res) => {
     const results = await retrieveChunks(query);
     res.status(200).json({ chunks: results });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message || 'Internal Server Error' });
   }
-}; 
+} 

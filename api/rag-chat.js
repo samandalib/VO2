@@ -1,13 +1,10 @@
-// api/rag-chat.cjs
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const RAG_RETRIEVE_URL = 'http://localhost:3000/api/rag-retrieve'; // Update if deployed elsewhere
+const RAG_RETRIEVE_URL = '/api/rag-retrieve';
 const OPENAI_CHAT_MODEL = 'gpt-4o';
 
 async function getRelevantChunks(query) {
-  // Call the local rag-retrieve endpoint
   const res = await fetch(RAG_RETRIEVE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -23,7 +20,7 @@ function buildPrompt(contextChunks, userQuery) {
   return `Answer the following question using only the provided context. If the answer is not in the context, say you don’t know.\n\nContext:\n${context}\n\nQuestion: ${userQuery}`;
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method Not Allowed' });
     return;
@@ -83,6 +80,7 @@ module.exports = async (req, res) => {
     res.end();
     return;
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message || 'Internal Server Error' });
   }
-}; 
+} 
