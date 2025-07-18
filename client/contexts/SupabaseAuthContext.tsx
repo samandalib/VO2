@@ -182,9 +182,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         hasClient: !!supabase
       });
       
-      // Clear demo account if it exists
-      console.log("🗑️ Clearing mock auth user from localStorage...");
+      // Clear all auth-related data from localStorage
+      console.log("🗑️ Clearing all auth data from localStorage...");
       localStorage.removeItem("mock_auth_user");
+      localStorage.removeItem("supabase.auth.token");
+      localStorage.removeItem("supabase.auth.expires_at");
+      localStorage.removeItem("supabase.auth.refresh_token");
+      
+      // Clear any other potential auth-related items
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('supabase') || key.includes('auth') || key.includes('session')) {
+          console.log(`🗑️ Clearing localStorage key: ${key}`);
+          localStorage.removeItem(key);
+        }
+      });
       
       // Skip problematic Supabase calls and focus on local state cleanup
       console.log("🚀 Proceeding with local sign out (skipping Supabase calls)...");
