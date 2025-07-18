@@ -1,4 +1,5 @@
 import fetch from 'node-fetch';
+import { Readable } from 'stream';
 
 function getBaseUrl(req) {
   if (req.headers['x-forwarded-host']) {
@@ -44,7 +45,7 @@ export default async function handler(req, res) {
   try {
     const chunks = await getRelevantChunks(query, req);
     const prompt = buildPrompt(chunks, query);
-    // Stream the answer from OpenAI
+    // Stream the answer from OpenAI using Node.js stream API
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -65,30 +66,29 @@ export default async function handler(req, res) {
     }
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
-    const reader = openaiRes.body.getReader();
-    const decoder = new TextDecoder();
-    let done = false;
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      if (value) {
-        const chunk = decoder.decode(value);
-        chunk.split('\n').forEach(line => {
-          if (line.startsWith('data: ')) {
-            const data = line.replace('data: ', '').trim();
-            if (data === '[DONE]') return;
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices?.[0]?.delta?.content;
-              if (content) {
-                res.write(content);
-              }
-            } catch (e) {}
-          }
-        });
-      }
-      done = doneReading;
-    }
-    res.end();
+    openaiRes.body.on('data', (chunk) => {
+      const lines = chunk.toString().split('\n');
+      lines.forEach(line => {
+        if (line.startsWith('data: ')) {
+          const data = line.replace('data: ', '').trim();
+          if (data === '[DONE]') return;
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              res.write(content);
+            }
+          } catch (e) {}
+        }
+      });
+    });
+    openaiRes.body.on('end', () => {
+      res.end();
+    });
+    openaiRes.body.on('error', (err) => {
+      console.error('Stream error:', err);
+      res.end();
+    });
     return;
   } catch (err) {
     console.error(err);
