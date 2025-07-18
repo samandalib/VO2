@@ -186,47 +186,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("🗑️ Clearing mock auth user from localStorage...");
       localStorage.removeItem("mock_auth_user");
       
-      // Check if there's an active session before signing out
-      console.log("🔍 Checking for active session...");
+      // Skip problematic Supabase calls and focus on local state cleanup
+      console.log("🚀 Proceeding with local sign out (skipping Supabase calls)...");
       
-      const sessionTimeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Session check timeout')), 3000)
-      );
-      
-      const sessionPromise = supabase.auth.getSession();
-      
-      let session;
-      try {
-        const { data } = await Promise.race([sessionPromise, sessionTimeoutPromise]) as any;
-        session = data?.session;
-        console.log("✅ Session check completed");
-      } catch (error) {
-        console.warn("⚠️ Session check failed or timed out:", error);
-        session = null;
-      }
-      
-      if (session) {
-        console.log("✅ Active session found, proceeding with sign out...");
-        
-        // Sign out from Supabase with timeout
-        console.log("🔐 Signing out from Supabase...");
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Sign out timeout')), 5000)
-        );
-        
-        const signOutPromise = supabase.auth.signOut();
-        
-        const { error } = await Promise.race([signOutPromise, timeoutPromise]) as any;
-        
-        if (error) {
-          console.error("❌ Supabase sign out error:", error);
-          throw error;
-        }
-        
-        console.log("✅ Supabase sign out successful");
-      } else {
-        console.log("ℹ️ No active session found, skipping Supabase sign out");
-      }
+      // Try to sign out from Supabase in background (non-blocking)
+      console.log("🔄 Attempting background Supabase sign out...");
+      supabase.auth.signOut().then(() => {
+        console.log("✅ Background Supabase sign out completed");
+      }).catch((error) => {
+        console.warn("⚠️ Background Supabase sign out failed:", error);
+      });
       
       // Update local state
       console.log("🔄 Updating local state...");
