@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// No import needed for fetch in Node.js 18+ on Vercel
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
