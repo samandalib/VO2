@@ -106,10 +106,18 @@ export function VO2MaxAIAssistantHero() {
           ]
         }),
       });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setAssistantReply(data.reply);
-    } catch (err: any) {
+      if (!res.body) throw new Error("No response body");
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        fullText += chunk;
+        setAssistantReply(fullText);
+      }
+    } catch (err) {
       setAssistantReply("Sorry, there was an error getting a response from the assistant.");
     } finally {
       setIsLoading(false);
