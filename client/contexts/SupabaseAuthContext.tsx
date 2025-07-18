@@ -176,13 +176,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log("🔄 Starting sign out process...");
     
     try {
+      // Debug Supabase client
+      console.log("🔧 Supabase client info:", {
+        hasAuth: !!supabase.auth,
+        hasClient: !!supabase
+      });
+      
       // Clear demo account if it exists
       console.log("🗑️ Clearing mock auth user from localStorage...");
       localStorage.removeItem("mock_auth_user");
       
       // Check if there's an active session before signing out
       console.log("🔍 Checking for active session...");
-      const { data: { session } } = await supabase.auth.getSession();
+      
+      const sessionTimeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Session check timeout')), 3000)
+      );
+      
+      const sessionPromise = supabase.auth.getSession();
+      
+      let session;
+      try {
+        const { data } = await Promise.race([sessionPromise, sessionTimeoutPromise]) as any;
+        session = data?.session;
+        console.log("✅ Session check completed");
+      } catch (error) {
+        console.warn("⚠️ Session check failed or timed out:", error);
+        session = null;
+      }
       
       if (session) {
         console.log("✅ Active session found, proceeding with sign out...");
