@@ -83,33 +83,38 @@ function useTypingAnimation(samples: string[], speed = 60, pause = 1200) {
 
 export function VO2MaxAIAssistantHero() {
   const [input, setInput] = useState("");
-  const [answers, setAnswers] = useState<string[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [streamed, setStreamed] = useState("");
-  const [hasAsked, setHasAsked] = useState(false); // NEW STATE
-  const [messages, setMessages] = useState<Array<{role: string, content: string}>>([]); // For OpenAI Chat Completions
+  const [hasAsked, setHasAsked] = useState(false);
+  const [messages, setMessages] = useState<Array<{role: string, content: string}>>([]);
+  const [streamed, setStreamed] = useState(""); // For streaming partial assistant reply
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingSample = useTypingAnimation(SAMPLE_QUESTIONS);
 
-  // Fetch answer from OpenAI Chat Completions backend
+  // Fetch and stream answer from OpenAI Chat Completions backend
   async function fetchAssistantAnswer(userMessage: string) {
     setIsStreaming(true);
     setStreamed("");
+    const updatedMessages = [...messages, { role: "user", content: userMessage }];
+    setMessages(updatedMessages);
     try {
-      // Add user message to conversation history
-      const updatedMessages = [...messages, { role: "user", content: userMessage }];
-      
       const res = await fetch("/api/assistant-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages }),
+        body: JSON.stringify({ messages: updatedMessages, stream: true }),
       });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setStreamed(data.reply);
-      setAnswers((prev) => [data.reply, ...prev.slice(0, 4)]);
-      // Add assistant reply to conversation history
-      setMessages([...updatedMessages, { role: "assistant", content: data.reply }]);
+      if (!res.body) throw new Error("No response body");
+      const reader = res.body.getReader();
+      let fullText = "";
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        fullText += chunk;
+        setStreamed(fullText);
+      }
+      setMessages([...updatedMessages, { role: "assistant", content: fullText }]);
+      setStreamed("");
     } catch (err: any) {
       setStreamed("Sorry, there was an error getting a response from the assistant.");
     } finally {
@@ -121,7 +126,7 @@ export function VO2MaxAIAssistantHero() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 0;
     }
-  }, [streamed, answers]);
+  }, [streamed, messages]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,26 +156,25 @@ export function VO2MaxAIAssistantHero() {
         {/* Answer stream area, only after first question is asked */}
         {hasAsked && (
           <div className="w-full max-w-2xl min-h-[200px] md:min-h-[300px] max-h-[420px] md:max-h-[600px] overflow-y-auto mb-2 transition-all relative scrollbar-thin scrollbar-thumb-border scrollbar-track-background" ref={scrollRef}>
+            {/* Streamed (partial) assistant reply */}
             {streamed && (
               <div className="animate-fade-in rounded-lg p-4 mb-2">
                 <span className="whitespace-pre-line text-base font-medium text-foreground">{streamed}</span>
               </div>
             )}
-            {answers.length === 0 && !streamed && (
-              <div className="rounded-lg p-4 mb-2 text-muted-foreground text-base">
-                VO₂max, or maximal oxygen uptake, is the maximum rate at which your body can consume oxygen during intense exercise. It is widely considered the gold standard for measuring cardiovascular fitness and aerobic endurance. A higher VO₂max means your heart, lungs, and muscles are more efficient at delivering and using oxygen, which translates to better performance in endurance sports and improved overall health.\n\nTypical values for VO₂max range from 30–40 ml/kg/min for untrained adults, 40–50 ml/kg/min for recreationally active individuals, and 60+ ml/kg/min for elite endurance athletes. Genetics, age, sex, and training status all influence your VO₂max, but nearly everyone can improve their score with the right training.\n\nTo increase your VO₂max, focus on interval training, high-intensity aerobic workouts, and consistent endurance exercise. Protocols like Tabata, 4x4 intervals, and Zone 2 training are scientifically proven to boost VO₂max. Regular testing and tracking can help you see progress and adjust your plan. Curious about how to test your VO₂max at home, what your number means for your health, or which protocol is best for you? Just ask!
-              </div>
-            )}
-            {answers.map((ans, i) => (
+            {/* Render all messages (except system) */}
+            {messages.filter(m => m.role !== "system").map((msg, i) => (
               <div
                 key={i}
                 className={cn(
                   "rounded-lg p-3 mb-2 text-foreground transition-opacity",
-                  i === 0 ? "opacity-80" : `opacity-${70 - i * 10}`
+                  msg.role === "assistant" ? "bg-muted" : "bg-card border border-border"
                 )}
-                style={{ opacity: 0.7 - i * 0.12 }}
+                style={{ opacity: 0.9 - i * 0.08 }}
               >
-                <span className="whitespace-pre-line text-base text-muted-foreground">{ans}</span>
+                <span className={msg.role === "assistant" ? "text-base text-foreground" : "text-base text-muted-foreground"}>
+                  {msg.content}
+                </span>
               </div>
             ))}
           </div>
