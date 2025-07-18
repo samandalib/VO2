@@ -180,16 +180,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("🗑️ Clearing mock auth user from localStorage...");
       localStorage.removeItem("mock_auth_user");
       
-      // Sign out from Supabase
-      console.log("🔐 Signing out from Supabase...");
-      const { error } = await supabase.auth.signOut();
+      // Check if there's an active session before signing out
+      console.log("🔍 Checking for active session...");
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (error) {
-        console.error("❌ Supabase sign out error:", error);
-        throw error;
+      if (session) {
+        console.log("✅ Active session found, proceeding with sign out...");
+        
+        // Sign out from Supabase with timeout
+        console.log("🔐 Signing out from Supabase...");
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Sign out timeout')), 5000)
+        );
+        
+        const signOutPromise = supabase.auth.signOut();
+        
+        const { error } = await Promise.race([signOutPromise, timeoutPromise]) as any;
+        
+        if (error) {
+          console.error("❌ Supabase sign out error:", error);
+          throw error;
+        }
+        
+        console.log("✅ Supabase sign out successful");
+      } else {
+        console.log("ℹ️ No active session found, skipping Supabase sign out");
       }
-      
-      console.log("✅ Supabase sign out successful");
       
       // Update local state
       console.log("🔄 Updating local state...");
