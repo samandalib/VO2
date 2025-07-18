@@ -1,6 +1,11 @@
 import fetch from 'node-fetch';
 
-const RAG_RETRIEVE_URL = '/api/rag-retrieve';
+const baseUrl =
+  process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000';
+
+const RAG_RETRIEVE_URL = `${baseUrl}/api/rag-retrieve`;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_CHAT_MODEL = 'gpt-4o';
 
