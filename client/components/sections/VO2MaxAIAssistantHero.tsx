@@ -83,42 +83,31 @@ function useTypingAnimation(samples: string[], speed = 60, pause = 1200) {
 
 export function VO2MaxAIAssistantHero() {
   const [input, setInput] = useState("");
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [hasAsked, setHasAsked] = useState(false);
-  const [messages, setMessages] = useState<Array<{role: string, content: string}>>([]);
-  const [streamed, setStreamed] = useState(""); // For streaming partial assistant reply
+  const [userMessage, setUserMessage] = useState<string>("");
+  const [assistantReply, setAssistantReply] = useState<string>("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingSample = useTypingAnimation(SAMPLE_QUESTIONS);
 
-  // Fetch and stream answer from OpenAI Chat Completions backend
-  async function fetchAssistantAnswer(userMessage: string) {
-    setIsStreaming(true);
-    setStreamed("");
-    const updatedMessages = [...messages, { role: "user", content: userMessage }];
-    setMessages(updatedMessages);
+  // Fetch answer from OpenAI /v1/responses backend
+  async function fetchAssistantAnswer(userInput: string) {
+    setIsLoading(true);
+    setUserMessage(userInput);
+    setAssistantReply("");
     try {
       const res = await fetch("/api/assistant-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages, stream: true }),
+        body: JSON.stringify({ input: userInput }),
       });
-      if (!res.body) throw new Error("No response body");
-      const reader = res.body.getReader();
-      let fullText = "";
-      const decoder = new TextDecoder();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        fullText += chunk;
-        setStreamed(fullText);
-      }
-      setMessages([...updatedMessages, { role: "assistant", content: fullText }]);
-      setStreamed("");
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setAssistantReply(data.reply);
     } catch (err: any) {
-      setStreamed("Sorry, there was an error getting a response from the assistant.");
+      setAssistantReply("Sorry, there was an error getting a response from the assistant.");
     } finally {
-      setIsStreaming(false);
+      setIsLoading(false);
     }
   }
 
@@ -126,11 +115,11 @@ export function VO2MaxAIAssistantHero() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 0;
     }
-  }, [streamed, messages]);
+  }, [assistantReply, userMessage]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isStreaming) return;
+    if (!input.trim() || isLoading) return;
     setInput("");
     setHasAsked(true);
     fetchAssistantAnswer(input.trim());
@@ -153,30 +142,26 @@ export function VO2MaxAIAssistantHero() {
             </p>
           </>
         )}
-        {/* Answer stream area, only after first question is asked */}
+        {/* Answer area, only after first question is asked */}
         {hasAsked && (
           <div className="w-full max-w-2xl min-h-[200px] md:min-h-[300px] max-h-[420px] md:max-h-[600px] overflow-y-auto mb-2 transition-all relative scrollbar-thin scrollbar-thumb-border scrollbar-track-background" ref={scrollRef}>
-            {/* Streamed (partial) assistant reply */}
-            {streamed && (
-              <div className="animate-fade-in rounded-lg p-4 mb-2">
-                <span className="whitespace-pre-line text-base font-medium text-foreground">{streamed}</span>
+            {/* User message */}
+            {userMessage && (
+              <div className="rounded-lg p-3 mb-2 text-muted-foreground bg-card border border-border">
+                <span className="text-base">{userMessage}</span>
               </div>
             )}
-            {/* Render all messages (except system) */}
-            {messages.filter(m => m.role !== "system").map((msg, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "rounded-lg p-3 mb-2 text-foreground transition-opacity",
-                  msg.role === "assistant" ? "bg-muted" : "bg-card border border-border"
-                )}
-                style={{ opacity: 0.9 - i * 0.08 }}
-              >
-                <span className={msg.role === "assistant" ? "text-base text-foreground" : "text-base text-muted-foreground"}>
-                  {msg.content}
-                </span>
+            {/* Assistant reply */}
+            {isLoading && (
+              <div className="rounded-lg p-3 mb-2 bg-muted animate-pulse">
+                <span className="text-base text-foreground">Thinking...</span>
               </div>
-            ))}
+            )}
+            {assistantReply && !isLoading && (
+              <div className="rounded-lg p-3 mb-2 bg-muted">
+                <span className="text-base text-foreground whitespace-pre-line">{assistantReply}</span>
+              </div>
+            )}
           </div>
         )}
         {/* Input box with typing animation */}
@@ -195,14 +180,14 @@ export function VO2MaxAIAssistantHero() {
                 handleSubmit(e);
               }
             }}
-            disabled={isStreaming}
+            disabled={isLoading}
             aria-label="Ask anything about VO₂max"
             autoFocus
           />
           <Button
             type="submit"
             className="rounded-full bg-primary hover:bg-primary/90 text-white w-12 h-12 flex items-center justify-center shadow text-xl"
-            disabled={isStreaming || !input.trim()}
+            disabled={isLoading || !input.trim()}
             aria-label="Send question"
           >
             <span className="sr-only">Send</span>
