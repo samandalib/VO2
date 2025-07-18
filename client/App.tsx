@@ -13,6 +13,7 @@ import AuthCallback from "./pages/AuthCallback";
 import EmailConfirmation from "./pages/EmailConfirmation";
 import TestAIAssistantHero from "@/pages/TestAIAssistantHero";
 import RagAIAssistantHero from "./pages/RagAIAssistantHero";
+import Documentation from "./pages/Documentation";
 
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/confirm" element={<EmailConfirmation />} />
           <Route path="/test-ai-hero" element={<TestAIAssistantHero />} />
           <Route path="/RagAIAssistantHero" element={<RagAIAssistantHero />} />
+          <Route path="/Documentation" element={<Documentation />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
