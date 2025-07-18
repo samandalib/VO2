@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { OpenAIStream, streamText } from 'ai';
+import OpenAI from 'openai';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -11,24 +13,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "messages array is required" });
   }
   try {
-    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages,
-      }),
+    // Use the Vercel AI SDK to stream the OpenAI response
+    const response = await streamText({
+      model: 'gpt-4o',
+      messages,
+      api: openai,
     });
-    const data = await openaiRes.json();
-    if (!openaiRes.ok) {
-      return res.status(openaiRes.status).json({ error: data.error || data });
-    }
-    // Return just the assistant's reply for convenience
-    const reply = data.choices?.[0]?.message?.content || '';
-    res.status(200).json({ reply, full: data });
+    return OpenAIStream(response, res);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Internal Server Error' });
   }
