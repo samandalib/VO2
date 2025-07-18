@@ -1,15 +1,21 @@
 import fetch from 'node-fetch';
 
-const baseUrl =
-  process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3000';
+function getBaseUrl(req) {
+  if (req.headers['x-forwarded-host']) {
+    return `https://${req.headers['x-forwarded-host']}`;
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return 'http://localhost:3000';
+}
 
-const RAG_RETRIEVE_URL = `${baseUrl}/api/rag-retrieve`;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_CHAT_MODEL = 'gpt-4o';
 
-async function getRelevantChunks(query) {
+async function getRelevantChunks(query, req) {
+  const baseUrl = getBaseUrl(req);
+  const RAG_RETRIEVE_URL = `${baseUrl}/api/rag-retrieve`;
   const res = await fetch(RAG_RETRIEVE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -36,7 +42,7 @@ export default async function handler(req, res) {
     return;
   }
   try {
-    const chunks = await getRelevantChunks(query);
+    const chunks = await getRelevantChunks(query, req);
     const prompt = buildPrompt(chunks, query);
     // Stream the answer from OpenAI
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
