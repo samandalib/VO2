@@ -87,25 +87,29 @@ export function VO2MaxAIAssistantHero() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamed, setStreamed] = useState("");
   const [hasAsked, setHasAsked] = useState(false); // NEW STATE
-  const [threadId, setThreadId] = useState<string | null>(null); // For OpenAI Assistant context
+  const [messages, setMessages] = useState<Array<{role: string, content: string}>>([]); // For OpenAI Chat Completions
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingSample = useTypingAnimation(SAMPLE_QUESTIONS);
 
-  // Fetch answer from OpenAI Assistant backend
-  async function fetchAssistantAnswer(message: string) {
+  // Fetch answer from OpenAI Chat Completions backend
+  async function fetchAssistantAnswer(userMessage: string) {
     setIsStreaming(true);
     setStreamed("");
     try {
+      // Add user message to conversation history
+      const updatedMessages = [...messages, { role: "user", content: userMessage }];
+      
       const res = await fetch("/api/assistant-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, thread_id: threadId }),
+        body: JSON.stringify({ messages: updatedMessages }),
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setStreamed(data.reply);
       setAnswers((prev) => [data.reply, ...prev.slice(0, 4)]);
-      setThreadId(data.thread_id);
+      // Add assistant reply to conversation history
+      setMessages([...updatedMessages, { role: "assistant", content: data.reply }]);
     } catch (err: any) {
       setStreamed("Sorry, there was an error getting a response from the assistant.");
     } finally {
