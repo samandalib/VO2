@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { HeroSection } from "@/components/sections/HeroSection";
+import { RagAIAssistantHero } from "@/components/sections/RagAIAssistantHero";
 import { FeaturesSection } from "@/components/sections/FeaturesSection";
 import { TestingProtocolsSection } from "@/components/sections/TestingProtocolsSection";
 import { TrainingProtocolsSection } from "@/components/sections/TrainingProtocolsSection";
@@ -353,13 +353,7 @@ export default function Index() {
   // Always render the main homepage content
   return (
     <div className="min-h-screen">
-      <HeroSection
-        onStartAssessment={handleStartAssessment}
-        onNavigateToDashboard={handleNavigateToDashboard}
-        onShowProjectionCalculator={handleShowProjectionCalculator}
-        onShowTestingProtocols={handleShowTestingProtocols}
-        onSignIn={handleSignIn}
-      />
+      <RagAIAssistantHero />
       <div ref={projectionCalculatorRef}>
         <VO2MaxCalculatorSection
           calculatorInputs={calculatorInputs}
