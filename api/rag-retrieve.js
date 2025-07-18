@@ -1,73 +1,70 @@
-// No import needed for fetch in Node.js 18+ on Vercel
-
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_EMBEDDING_MODEL = 'text-embedding-ada-002';
-const TOP_K = 5;
-
-async function getEmbedding(text) {
-  const res = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      input: text,
-      model: OPENAI_EMBEDDING_MODEL,
-    }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || 'OpenAI embedding error');
-  return data.data[0].embedding;
-}
-
-async function retrieveChunks(query) {
-  const embedding = await getEmbedding(query);
-  // Supabase pgvector similarity search
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/match_pdf_chunks`, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query_embedding: embedding,
-      match_count: TOP_K,
-    }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || 'Supabase match error');
-  return data;
-}
-
 export default async function handler(req, res) {
   try {
-    console.log('rag-retrieve invoked:', req.method, req.body);
-    console.log('SUPABASE_URL:', SUPABASE_URL);
-    console.log('SUPABASE_KEY:', SUPABASE_KEY ? 'set' : 'missing');
-    console.log('OPENAI_API_KEY:', OPENAI_API_KEY ? 'set' : 'missing');
-    if (!SUPABASE_URL || !SUPABASE_KEY || !OPENAI_API_KEY) {
-      return res.status(500).json({ error: 'Missing required environment variables' });
-    }
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method Not Allowed' });
     }
-    let query;
+
+    // Parse body
+    let body = req.body;
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        return res.status(400).json({ error: "Invalid JSON body", details: e.message, raw: req.body });
+      }
+    }
+    if (!body || !body.query) {
+      return res.status(400).json({ error: "Missing query in body", body });
+    }
+
+    // OpenAI Embedding
+    let embedding;
     try {
-      query = req.body.query;
-    } catch (e) {
-      return res.status(400).json({ error: 'Invalid JSON body' });
+      const openaiRes = await fetch('https://api.openai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          input: body.query,
+          model: 'text-embedding-ada-002',
+        }),
+      });
+      const openaiData = await openaiRes.json();
+      if (!openaiRes.ok) throw new Error(openaiData.error?.message || 'OpenAI embedding error');
+      embedding = openaiData.data[0].embedding;
+    } catch (err) {
+      console.error("OpenAI Embedding error:", err);
+      return res.status(500).json({ error: "OpenAI Embedding error", details: err.message });
     }
-    if (!query) {
-      return res.status(400).json({ error: 'Missing query' });
+
+    // Supabase vector search
+    let chunks;
+    try {
+      const supabaseRes = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/match_pdf_chunks`, {
+        method: 'POST',
+        headers: {
+          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query_embedding: embedding,
+          match_count: 5,
+        }),
+      });
+      const supabaseData = await supabaseRes.json();
+      if (!supabaseRes.ok) throw new Error(supabaseData.error?.message || 'Supabase match error');
+      chunks = supabaseData;
+    } catch (err) {
+      console.error("Supabase vector search error:", err);
+      return res.status(500).json({ error: "Supabase vector search error", details: err.message });
     }
-    const results = await retrieveChunks(query);
-    res.status(200).json({ chunks: results });
+
+    return res.status(200).json({ chunks });
   } catch (err) {
-    console.error('RAG Retrieve Error:', err);
-    res.status(500).json({ error: err.message || 'Internal Server Error' });
+    console.error("UNEXPECTED ERROR:", err);
+    return res.status(500).json({ error: "Internal Server Error", details: err.message });
   }
 } 
