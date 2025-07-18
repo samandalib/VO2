@@ -50,7 +50,31 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "OpenAI Embedding error", details: err.message });
     }
 
-    // Return embedding for now
+    // Step 3: Call Supabase vector search
+    let chunks = null;
+    try {
+      const supabaseRes = await fetch(`${process.env.SUPABASE_URL}/rest/v1/rpc/match_pdf_chunks`, {
+        method: 'POST',
+        headers: {
+          'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query_embedding: embedding,
+          match_count: 5,
+        }),
+      });
+      const supabaseData = await supabaseRes.json();
+      console.log("Supabase vector search response:", supabaseData);
+      if (!supabaseRes.ok) throw new Error(supabaseData.error?.message || 'Supabase match error');
+      chunks = supabaseData;
+    } catch (err) {
+      console.error("Supabase vector search error:", err);
+      return res.status(500).json({ error: "Supabase vector search error", details: err.message });
+    }
+
+    // Return chunks for now
     return res.status(200).json({
       ok: true,
       method: req.method,
@@ -60,7 +84,8 @@ export default async function handler(req, res) {
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ? "set" : "missing"
       },
       body,
-      embedding
+      embedding,
+      chunks
     });
   } catch (err) {
     console.error("UNEXPECTED ERROR:", err);
