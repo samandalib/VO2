@@ -367,10 +367,17 @@ export default function Index() {
               <span className="font-mono">{user.email}</span>
             </div>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 console.log("Sign out button clicked");
                 alert("Sign out button clicked!");
-                signOut();
+                try {
+                  console.log("Calling signOut function...");
+                  await signOut();
+                  console.log("Sign out completed successfully");
+                } catch (error) {
+                  console.error("Sign out error:", error);
+                  alert("Sign out failed: " + error);
+                }
               }}
               variant="outline"
               className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300 cursor-pointer relative z-50"

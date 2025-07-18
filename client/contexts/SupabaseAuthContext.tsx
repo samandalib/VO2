@@ -173,15 +173,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    // Clear demo account if it exists
-    localStorage.removeItem("mock_auth_user");
-    // Sign out from Supabase
-    await supabase.auth.signOut();
-    setUser(null);
-    setUserUuid(null);
-
-    // Redirect to home page after sign out
-    window.location.href = "/";
+    console.log("🔄 Starting sign out process...");
+    
+    try {
+      // Clear demo account if it exists
+      console.log("🗑️ Clearing mock auth user from localStorage...");
+      localStorage.removeItem("mock_auth_user");
+      
+      // Sign out from Supabase
+      console.log("🔐 Signing out from Supabase...");
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("❌ Supabase sign out error:", error);
+        throw error;
+      }
+      
+      console.log("✅ Supabase sign out successful");
+      
+      // Update local state
+      console.log("🔄 Updating local state...");
+      setUser(null);
+      setUserUuid(null);
+      
+      console.log("🚀 Redirecting to home page...");
+      // Redirect to home page after sign out
+      window.location.href = "/";
+      
+    } catch (error) {
+      console.error("❌ Sign out process failed:", error);
+      throw error;
+    }
   };
 
   const signInWithGoogle = async () => {
