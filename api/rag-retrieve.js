@@ -45,6 +45,10 @@ async function retrieveChunks(query) {
 }
 
 export default async function handler(req, res) {
+  console.log('rag-retrieve invoked:', req.method, req.body);
+  console.log('SUPABASE_URL:', SUPABASE_URL);
+  console.log('SUPABASE_KEY:', SUPABASE_KEY ? 'set' : 'missing');
+  console.log('OPENAI_API_KEY:', OPENAI_API_KEY ? 'set' : 'missing');
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method Not Allowed' });
     return;
