@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,32 +29,51 @@ export function AuthModal({
   description = "Sign in to track your progress and access personalized training protocols",
   onSuccess,
 }: AuthModalProps) {
-  const { signInWithMagicLink, signInWithDemo, loading: isLoading } = useAuth();
+  const { signInWithMagicLink, signInWithDemo } = useAuth();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Reset state when modal opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setEmail("");
+      setError("");
+      setSuccess(false);
+      setIsLoading(false);
+    }
+  }, [isOpen]);
 
   const handleMagicLink = async () => {
     setError("");
+    setIsLoading(true);
+    
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
       setError("Please enter a valid email");
+      setIsLoading(false);
       return;
     }
+    
     try {
       const { error } = await signInWithMagicLink(email);
       if (error) {
         setError(error.message);
+        setIsLoading(false);
         return;
       }
       setSuccess(true);
+      setIsLoading(false);
     } catch (e) {
       setError("An unexpected error occurred");
+      setIsLoading(false);
     }
   };
 
   const handleDemo = async () => {
     setError("");
+    setIsLoading(true);
     try {
       await signInWithDemo();
       onSuccess?.();
@@ -62,6 +81,7 @@ export function AuthModal({
       navigate("/dashboard");
     } catch (e) {
       setError("Failed to sign in as demo user");
+      setIsLoading(false);
     }
   };
 
@@ -114,7 +134,7 @@ export function AuthModal({
             {import.meta.env.DEV ? (
               <>
                 <span className="text-xs text-gray-500 mb-2">or</span>
-                <Button variant="outline" className="w-full" onClick={handleDemo}>
+                <Button variant="outline" className="w-full" onClick={handleDemo} disabled={isLoading}>
                   Continue with Demo Account
                 </Button>
               </>
