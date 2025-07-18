@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "../ui/textarea";
 import { cn } from "@/lib/utils";
 import { BarChart3, TrendingUp, Target, FlaskConical } from "lucide-react";
+import ReactMarkdown from 'react-markdown';
 
 const SAMPLE_QUESTIONS = [
   "What is VO₂max and why does it matter?",
@@ -163,7 +164,9 @@ export function VO2MaxAIAssistantHero() {
             )}
             {assistantReply && !isLoading && (
               <div className="rounded-lg p-3 mb-2 bg-muted">
-                <span className="text-base text-foreground whitespace-pre-line">{assistantReply}</span>
+                <div className="prose prose-neutral dark:prose-invert max-w-none text-base text-foreground">
+                  <ReactMarkdown>{assistantReply}</ReactMarkdown>
+                </div>
               </div>
             )}
           </div>
