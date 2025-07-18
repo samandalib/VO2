@@ -19,9 +19,37 @@ export default function AuthCallback() {
     const handleAuthCallback = async () => {
       try {
         console.log("🔄 Processing OAuth callback...");
+        console.log("🔧 Current URL:", window.location.href);
+        console.log("🔧 URL hash:", window.location.hash);
+        console.log("🔧 Supabase client available:", !!supabase);
         
-        // Get the session from the URL hash/fragment
-        const { data, error } = await supabase.auth.getSession();
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('OAuth callback timeout')), 10000)
+        );
+        
+        const sessionPromise = supabase.auth.getSession();
+        
+        let data, error;
+        try {
+          const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
+          data = result.data;
+          error = result.error;
+          console.log("✅ Session check completed");
+        } catch (timeoutError) {
+          console.warn("⚠️ Session check timed out, proceeding with fallback...");
+          // Try to get session without waiting
+          try {
+            const fallbackResult = await supabase.auth.getSession();
+            data = fallbackResult.data;
+            error = fallbackResult.error;
+          } catch (fallbackError) {
+            console.error("❌ Fallback session check also failed:", fallbackError);
+            setError("Authentication timeout. Please try again.");
+            setTimeout(() => navigate("/"), 3000);
+            return;
+          }
+        }
         
         if (error) {
           console.error("❌ Error getting session:", error);
