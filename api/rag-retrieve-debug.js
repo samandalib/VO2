@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     console.log("SUPABASE_SERVICE_ROLE_KEY:", process.env.SUPABASE_SERVICE_ROLE_KEY ? "set" : "missing");
     console.log("OPENAI_API_KEY:", process.env.OPENAI_API_KEY ? "set" : "missing");
 
-    // Try to parse body
+    // Parse body
     let body = req.body;
     if (typeof body === "string") {
       try {
@@ -23,22 +23,44 @@ export default async function handler(req, res) {
       console.log("Parsed body (object):", body);
     }
 
-    // Check for query
     if (!body || !body.query) {
       return res.status(400).json({ error: "Missing query in body", body });
     }
 
-    // Dummy response for now
+    // Step 2: Call OpenAI Embeddings API
+    let embedding = null;
+    try {
+      const openaiRes = await fetch('https://api.openai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          input: body.query,
+          model: 'text-embedding-ada-002',
+        }),
+      });
+      const openaiData = await openaiRes.json();
+      console.log("OpenAI Embedding response:", openaiData);
+      if (!openaiRes.ok) throw new Error(openaiData.error?.message || 'OpenAI embedding error');
+      embedding = openaiData.data[0].embedding;
+    } catch (err) {
+      console.error("OpenAI Embedding error:", err);
+      return res.status(500).json({ error: "OpenAI Embedding error", details: err.message });
+    }
+
+    // Return embedding for now
     return res.status(200).json({
       ok: true,
       method: req.method,
-      headers: req.headers,
       env: {
         SUPABASE_URL: process.env.SUPABASE_URL,
         SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? "set" : "missing",
         OPENAI_API_KEY: process.env.OPENAI_API_KEY ? "set" : "missing"
       },
-      body
+      body,
+      embedding
     });
   } catch (err) {
     console.error("UNEXPECTED ERROR:", err);
