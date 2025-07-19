@@ -7,6 +7,17 @@ export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Clear only Supabase auth/session keys before processing magic link
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    Object.keys(sessionStorage).forEach(key => {
+      if (key.startsWith('sb-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
     // Check for error in URL hash (e.g., magic link expired)
     const hash = window.location.hash;
     if (hash.includes('error=')) {
