@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, User, AlertCircle, Shield, Zap, Target, Loader2 } from "lucide-react";
+import { Mail, User, AlertCircle, Shield, Zap, Target, Loader2, Wand2 } from "lucide-react";
 import { useAuthV2 } from "@/contexts/SupabaseAuthContextV2";
 import { useNavigate } from "react-router-dom";
 
@@ -216,16 +216,6 @@ export function SimpleAuthModalV2({
                       placeholder="Enter your password"
                       disabled={isLoading}
                     />
-                    <div className="mt-2">
-                      <button
-                        type="button"
-                        onClick={handleMagicLink}
-                        className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline"
-                        disabled={isLoading}
-                      >
-                        Forgot password? Sign in with magic link
-                      </button>
-                    </div>
                   </div>
                 )}
                 
@@ -239,6 +229,19 @@ export function SimpleAuthModalV2({
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Processing..." : (isSignUp ? "Send Magic Link (V2)" : "Sign In (V2)")}
                 </Button>
+                
+                {!isSignUp && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleMagicLink}
+                    disabled={isLoading}
+                    className="w-full"
+                  >
+                    <Wand2 className="w-4 h-4 mr-2" />
+                    Sign in with Magic Link
+                  </Button>
+                )}
                 
                 {isSignUp && (
                   <p className="text-xs text-center text-muted-foreground">
