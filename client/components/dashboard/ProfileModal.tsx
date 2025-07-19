@@ -274,6 +274,12 @@ export function ProfileModal({ user, open, onClose }: ProfileModalProps) {
     setPasswordError("");
     setPasswordSuccess("");
     
+    // Add timeout to prevent indefinite loading
+    const timeoutId = setTimeout(() => {
+      setResettingPassword(false);
+      setPasswordError("Request timed out. Please try again.");
+    }, 10000); // 10 second timeout
+    
     try {
       if (isDemo) {
         // For demo users, just simulate success
@@ -282,29 +288,62 @@ export function ProfileModal({ user, open, onClose }: ProfileModalProps) {
         setConfirmPassword("");
         setShowPasswordReset(false);
         setResettingPassword(false);
+        clearTimeout(timeoutId);
         return;
       }
       
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("No active session. Please sign in again.");
+      }
+      
+      console.log("🔐 User session found:", session.user.email);
+      
       // Use Supabase's built-in auth.updateUser() for password changes
-      const { error } = await supabase.auth.updateUser({
+      console.log("🔄 Updating password via Supabase Auth...");
+      const { data, error } = await supabase.auth.updateUser({
         password: newPassword
       });
       
+      console.log("📡 Supabase auth response:", { data, error });
+      
       if (error) {
-        console.error("Supabase auth error:", error);
+        console.error("❌ Supabase auth error:", error);
         throw error;
+      }
+      
+      if (data.user) {
+        console.log("✅ Password updated successfully for user:", data.user.email);
       }
       
       setPasswordSuccess("Password updated successfully!");
       setNewPassword("");
       setConfirmPassword("");
       setShowPasswordReset(false);
+      clearTimeout(timeoutId); // Clear timeout on success
     } catch (error) {
-      console.error("Password reset error:", error);
-      setPasswordError("Failed to update password. Please try again.");
+      console.error("❌ Password reset error:", error);
+      
+      // Provide more specific error messages
+      if (error && typeof error === 'object' && 'message' in error) {
+        const errorMessage = (error as any).message;
+        if (errorMessage.includes('password')) {
+          setPasswordError(`Password error: ${errorMessage}`);
+        } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+          setPasswordError("Network error. Please check your connection and try again.");
+        } else if (errorMessage.includes('unauthorized') || errorMessage.includes('401')) {
+          setPasswordError("Session expired. Please sign in again.");
+        } else {
+          setPasswordError(`Update failed: ${errorMessage}`);
+        }
+      } else {
+        setPasswordError("Failed to update password. Please try again.");
+      }
     }
     
     setResettingPassword(false);
+    clearTimeout(timeoutId); // Clear timeout on error
   };
 
   return (
