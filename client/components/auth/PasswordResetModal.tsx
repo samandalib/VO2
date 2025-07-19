@@ -58,7 +58,7 @@ export function PasswordResetModal({ user, open, onClose }: PasswordResetModalPr
     const timeoutId = setTimeout(() => {
       setResettingPassword(false);
       setPasswordError("Request timed out. Please try again.");
-    }, 15000); // 15 second timeout
+    }, 30000); // 30 second timeout
     
     try {
       if (isDemo) {
@@ -81,33 +81,57 @@ export function PasswordResetModal({ user, open, onClose }: PasswordResetModalPr
       
       // Use Supabase's built-in auth.updateUser() for password changes
       console.log("🔄 Updating password via Supabase Auth...");
-      const { data, error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
+      console.log("📧 User email:", session.user.email);
+      console.log("🆔 User ID:", session.user.id);
       
-      console.log("📡 Supabase auth response:", { data, error });
+      let data, error;
+      try {
+        const result = await supabase.auth.updateUser({
+          password: newPassword
+        });
+        data = result.data;
+        error = result.error;
+              console.log("📡 Supabase auth response:", { data, error });
+      console.log("📊 Response data type:", typeof data);
+      console.log("📊 Response error type:", typeof error);
+      console.log("📊 Response data keys:", data ? Object.keys(data) : "null");
+      console.log("📊 Response data.user:", data?.user);
+      } catch (supabaseError) {
+        console.error("💥 Supabase call failed with exception:", supabaseError);
+        throw new Error(`Supabase call failed: ${supabaseError}`);
+      }
       
       if (error) {
         console.error("❌ Supabase auth error:", error);
         throw error;
       }
       
-      // Check if the update was successful (even if data.user might be null)
+      // Check if the update was successful - the response shows the user object
       console.log("✅ Password update completed successfully");
+      console.log("📋 Response data:", data);
       
-      // Set success state
+      // The response contains the user object, so this is a successful update
+      if (data && data.user) {
+        console.log("👤 User data received:", data.user.email);
+      }
+      
+      // Set success state immediately since we got a successful response
       setPasswordSuccess("Password updated successfully!");
       console.log("🎉 Success message set");
       
+      // Clear timeout immediately since we succeeded
+      clearTimeout(timeoutId);
+      console.log("⏰ Timeout cleared");
+      
       // Clear form and close modal after delay
       setTimeout(() => {
+        console.log("🔄 Closing modal after success...");
         setNewPassword("");
         setConfirmPassword("");
         onClose();
       }, 2000);
       
-      clearTimeout(timeoutId); // Clear timeout on success
-      console.log("⏰ Timeout cleared");
+      console.log("✅ Password reset process completed successfully");
     } catch (error) {
       console.error("❌ Password reset error:", error);
       
