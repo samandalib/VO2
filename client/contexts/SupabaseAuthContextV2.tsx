@@ -4,15 +4,21 @@ import { supabase } from "@/lib/supabase";
 import { ensureUserProfile } from "@/lib/ensureUserProfile";
 import { useLocation } from "react-router-dom";
 
-// Simple password hashing function (in production, use a proper crypto library)
-const hashPassword = async (password: string): Promise<string> => {
-  // For now, we'll use a simple hash. In production, use bcrypt or similar
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex;
+// Password validation function for V2 auth
+const validatePassword = (password: string): string | null => {
+  if (password.length < 8) {
+    return "Password must be at least 8 characters long";
+  }
+  if (!/[A-Z]/.test(password)) {
+    return "Password must contain at least one uppercase letter";
+  }
+  if (!/[a-z]/.test(password)) {
+    return "Password must contain at least one lowercase letter";
+  }
+  if (!/[0-9]/.test(password)) {
+    return "Password must contain at least one number";
+  }
+  return null;
 };
 
 interface AuthContextType {
@@ -166,7 +172,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
   }, [location.pathname]);
 
   const signIn = async (email: string, password: string) => {
-    // First try Supabase Auth (for existing users)
+    // Use Supabase's built-in auth system
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -175,50 +181,6 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
     if (data.user) {
       // User exists in Supabase Auth, sign in successful
       return { error: null };
-    }
-    
-    // If Supabase Auth fails, check if user exists in user_profiles with password
-    if (error) {
-      console.log("🔍 Checking user_profiles table for local authentication...");
-      
-      // Hash the provided password
-      const passwordHash = await hashPassword(password);
-      
-      // Check if user exists in user_profiles with matching password hash
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('email', email)
-        .eq('password_hash', passwordHash)
-        .single();
-      
-      if (profileData && !profileError) {
-        console.log("✅ Local authentication successful");
-        
-        // Create a mock user session for local authentication
-        const mockUser: User = {
-          id: profileData.id,
-          email: profileData.email,
-          user_metadata: {
-            name: profileData.name,
-            picture: profileData.picture,
-          },
-          app_metadata: {},
-          aud: "authenticated",
-          created_at: profileData.created_at,
-          updated_at: profileData.updated_at,
-        } as User;
-        
-        // Set the user in local state
-        setUser(mockUser);
-        setUserUuid(mockUser.id);
-        setLoading(false);
-        
-        return { error: null };
-      } else {
-        console.log("❌ Local authentication failed");
-        return { error: { message: "Invalid email or password" } };
-      }
     }
     
     return { error };

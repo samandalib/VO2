@@ -29,17 +29,21 @@ interface ProfileModalProps {
 
 const PLACEHOLDER_IMG = "https://ui-avatars.com/api/?name=User&background=eee&color=888&size=128";
 
-// API base URL for auth endpoints
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://vo-2-gamma.vercel.app/api';
-
-// Simple password hashing function (matches V2 auth context)
-const hashPassword = async (password: string): Promise<string> => {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex;
+// Password validation function
+const validatePassword = (password: string): string | null => {
+  if (password.length < 8) {
+    return "Password must be at least 8 characters long";
+  }
+  if (!/[A-Z]/.test(password)) {
+    return "Password must contain at least one uppercase letter";
+  }
+  if (!/[a-z]/.test(password)) {
+    return "Password must contain at least one lowercase letter";
+  }
+  if (!/[0-9]/.test(password)) {
+    return "Password must contain at least one number";
+  }
+  return null;
 };
 
 function getDefaultName(user: any) {
@@ -255,8 +259,9 @@ export function ProfileModal({ user, open, onClose }: ProfileModalProps) {
 
   const handlePasswordReset = async () => {
     // Validate passwords
-    if (newPassword.length < 6) {
-      setPasswordError("Password must be at least 6 characters long");
+    const validationError = validatePassword(newPassword);
+    if (validationError) {
+      setPasswordError(validationError);
       return;
     }
     
@@ -280,16 +285,13 @@ export function ProfileModal({ user, open, onClose }: ProfileModalProps) {
         return;
       }
       
-      // For V2 users, update the password_hash in user_profiles table
-      // This works with the V2 authentication system
-      const passwordHash = await hashPassword(newPassword);
-      const { error } = await supabase
-        .from("user_profiles")
-        .update({ password_hash: passwordHash })
-        .eq("id", user.id);
+      // Use Supabase's built-in auth.updateUser() for password changes
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
       
       if (error) {
-        console.error("Supabase error:", error);
+        console.error("Supabase auth error:", error);
         throw error;
       }
       
@@ -447,9 +449,12 @@ export function ProfileModal({ user, open, onClose }: ProfileModalProps) {
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
-                    minLength={6}
+                    placeholder="Enter new password (min 8 chars, uppercase, lowercase, number)"
+                    minLength={8}
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Must be at least 8 characters with uppercase, lowercase, and number
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -459,7 +464,7 @@ export function ProfileModal({ user, open, onClose }: ProfileModalProps) {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm new password"
-                    minLength={6}
+                    minLength={8}
                   />
                 </div>
                 <div className="flex gap-2">
