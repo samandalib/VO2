@@ -56,13 +56,10 @@ export function PasswordResetModal({ user, open, onClose }: PasswordResetModalPr
     
     // Add timeout to prevent indefinite loading
     const timeoutId = setTimeout(() => {
-      console.log("⏰ UI timeout reached, but network request likely succeeded");
+      console.log("⏰ UI timeout reached");
       setResettingPassword(false);
       setPasswordError("Request timed out. Please try again.");
-    }, 30000); // 30 second timeout
-    
-    // Note: We removed the auto-success timeout since we now rely on the actual network response
-    // The network request always succeeds, so we'll use the response data as our success criteria
+    }, 15000); // 15 second timeout - shorter since we know network works
     
     try {
       if (isDemo) {
@@ -140,6 +137,9 @@ export function PasswordResetModal({ user, open, onClose }: PasswordResetModalPr
             }
           };
           error = null;
+          
+          // Immediately clear the UI timeout since we're treating this as success
+          clearTimeout(timeoutId);
         } else {
           throw new Error(`Supabase call failed: ${supabaseError}`);
         }
@@ -177,23 +177,9 @@ export function PasswordResetModal({ user, open, onClose }: PasswordResetModalPr
       }
       
       // Set success state immediately since we got a successful response
+      setPasswordError(""); // Clear any existing error
       setPasswordSuccess("Password updated successfully!");
       console.log("🎉 Success message set");
-      
-      // Optional: Verify the update by fetching current user session
-      try {
-        console.log("🔍 Verifying password update by fetching current session...");
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.log("⚠️ Could not verify session:", sessionError);
-        } else if (sessionData.session) {
-          console.log("✅ Session verified, user is still authenticated");
-          console.log("🕒 Session user updated_at:", sessionData.session.user.updated_at);
-        }
-      } catch (verifyError) {
-        console.log("⚠️ Session verification failed:", verifyError);
-      }
       
       // Clear timeout immediately since we succeeded
       clearTimeout(timeoutId);
@@ -201,6 +187,23 @@ export function PasswordResetModal({ user, open, onClose }: PasswordResetModalPr
       
       // Also set resettingPassword to false to enable the close button
       setResettingPassword(false);
+      
+      // Optional: Verify the update by fetching current user session (non-blocking)
+      setTimeout(async () => {
+        try {
+          console.log("🔍 Verifying password update by fetching current session...");
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.log("⚠️ Could not verify session:", sessionError);
+          } else if (sessionData.session) {
+            console.log("✅ Session verified, user is still authenticated");
+            console.log("🕒 Session user updated_at:", sessionData.session.user.updated_at);
+          }
+        } catch (verifyError) {
+          console.log("⚠️ Session verification failed:", verifyError);
+        }
+      }, 100);
       
       // Clear form and close modal after delay
       setTimeout(() => {
