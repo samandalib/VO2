@@ -37,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check for demo account first
     const checkAuth = async () => {
       try {
+        console.log("[Auth] Starting initial session check...");
         const mockUser = localStorage.getItem("mock_auth_user");
         if (mockUser) {
           console.log("Found mock user in localStorage:", mockUser);
@@ -61,19 +62,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Get initial session from Supabase
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        // Get initial session from Supabase with timeout
+        console.log("[Auth] Checking Supabase session (with 5s timeout)...");
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Session check timeout")), 5000)
+        );
+        const sessionPromise = supabase.auth.getSession();
+        let sessionData;
+        try {
+          const { data } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+          sessionData = data;
+          console.log("[Auth] Session check completed:", data);
+        } catch (err) {
+          console.warn("[Auth] Session check failed or timed out:", err);
+          setUser(null);
+          setUserUuid(null);
+          setLoading(false);
+          return;
+        }
 
-        if (session?.user) {
+        if (sessionData?.session) {
           // Ensure user profile exists and get UUID
-          const uuid = await ensureUserProfile(session.user);
+          const uuid = await ensureUserProfile(sessionData.session.user);
           setUserUuid(uuid);
+          setUser(sessionData.session.user);
         } else {
+          setUser(null);
           setUserUuid(null);
         }
-        setUser(session?.user ?? null);
         setLoading(false);
       } catch (error) {
         setUser(null);

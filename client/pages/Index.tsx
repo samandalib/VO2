@@ -373,6 +373,11 @@ export default function Index() {
                 try {
                   console.log("Calling signOut function...");
                   await signOut();
+                  // Clear all browser data after sign out
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  alert("All browser data cleared! Refreshing page...");
+                  window.location.reload();
                   console.log("Sign out completed successfully");
                 } catch (error) {
                   console.error("Sign out error:", error);
@@ -386,23 +391,6 @@ export default function Index() {
             >
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
-            </Button>
-            <Button
-              onClick={() => {
-                console.log("Clear browser data clicked");
-                if (confirm("This will clear all browser data for this site. Continue?")) {
-                  localStorage.clear();
-                  sessionStorage.clear();
-                  alert("Browser data cleared! Please refresh the page.");
-                  window.location.reload();
-                }
-              }}
-              variant="outline"
-              className="bg-red-500/80 backdrop-blur-sm hover:bg-red-600/90 transition-all duration-300 cursor-pointer relative z-50"
-              disabled={false}
-              style={{ border: '2px solid red', backgroundColor: 'orange' }}
-            >
-              Clear Data
             </Button>
           </div>
         ) : (
