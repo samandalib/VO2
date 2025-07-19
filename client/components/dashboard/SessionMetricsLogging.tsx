@@ -153,7 +153,7 @@ export function SessionMetricsLogging({ userId }: SessionMetricsLoggingProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-orange-500" />
+            <Activity className="w-5 h-5 text-warning" />
             Session Metrics Logging
           </CardTitle>
         </CardHeader>
@@ -171,7 +171,7 @@ export function SessionMetricsLogging({ userId }: SessionMetricsLoggingProps) {
     <Card className="spotify-card border-none bg-card/80 backdrop-blur-xl h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Activity className="w-5 h-5 text-orange-500" />
+          <Activity className="w-5 h-5 text-warning" />
           Session Metrics Logging
         </CardTitle>
         <CardDescription>
@@ -181,10 +181,10 @@ export function SessionMetricsLogging({ userId }: SessionMetricsLoggingProps) {
         {/* Preview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
           {/* Max HR Preview Card */}
-          <div className="bg-gradient-to-br from-red-500/10 to-orange-500/10 dark:from-red-500/20 dark:to-orange-500/20 p-6 rounded-2xl border border-red-500/20 shadow-lg hover:shadow-xl transition-all duration-300">
+          <div className="bg-gradient-to-br from-destructive/10 to-warning/10 p-6 rounded-2xl border border-destructive/20 shadow-lg hover:shadow-xl transition-all duration-300">
             <div className="flex items-center gap-4 mb-3">
-              <div className="p-2 rounded-full bg-red-500/20">
-                <BarChart3 className="w-6 h-6 text-red-500" />
+              <div className="p-2 rounded-full bg-destructive/20">
+                <BarChart3 className="w-6 h-6 text-destructive" />
               </div>
               <div>
                 <h4 className="text-base font-semibold text-foreground">
@@ -197,21 +197,21 @@ export function SessionMetricsLogging({ userId }: SessionMetricsLoggingProps) {
             </div>
             <div className="text-sm text-muted-foreground space-y-2 mt-4">
               <p className="flex items-center gap-2">
-                <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                <span className="w-1 h-1 bg-destructive rounded-full"></span>
                 Record highest HR reached during session
               </p>
               <p className="flex items-center gap-2">
-                <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                <span className="w-1 h-1 bg-destructive rounded-full"></span>
                 Shows training intensity peaks
               </p>
             </div>
           </div>
 
           {/* Avg HR Preview Card */}
-          <div className="bg-gradient-to-br from-orange-500/10 to-yellow-500/10 dark:from-orange-500/20 dark:to-yellow-500/20 p-6 rounded-2xl border border-orange-500/20 shadow-lg hover:shadow-xl transition-all duration-300">
+          <div className="bg-gradient-to-br from-warning/10 to-yellow-500/10 dark:from-orange-500/20 dark:to-yellow-500/20 p-6 rounded-2xl border border-orange-500/20 shadow-lg hover:shadow-xl transition-all duration-300">
             <div className="flex items-center gap-4 mb-3">
-              <div className="p-2 rounded-full bg-orange-500/20">
-                <Activity className="w-6 h-6 text-orange-500" />
+              <div className="p-2 rounded-full bg-warning/20">
+                <Activity className="w-6 h-6 text-warning" />
               </div>
               <div>
                 <h4 className="text-base font-semibold text-foreground">
@@ -224,11 +224,11 @@ export function SessionMetricsLogging({ userId }: SessionMetricsLoggingProps) {
             </div>
             <div className="text-sm text-muted-foreground space-y-2 mt-4">
               <p className="flex items-center gap-2">
-                <span className="w-1 h-1 bg-orange-500 rounded-full"></span>
+                <span className="w-1 h-1 bg-warning rounded-full"></span>
                 Overall average HR for entire session
               </p>
               <p className="flex items-center gap-2">
-                <span className="w-1 h-1 bg-orange-500 rounded-full"></span>
+                <span className="w-1 h-1 bg-warning rounded-full"></span>
                 Tracks sustained training intensity
               </p>
             </div>
@@ -403,13 +403,13 @@ export function SessionMetricsLogging({ userId }: SessionMetricsLoggingProps) {
                     <div className="flex items-center gap-4 text-xs">
                       {entry.maxHR && (
                         <span className="flex items-center gap-1">
-                          <BarChart3 className="w-3 h-3 text-red-500" />
+                          <BarChart3 className="w-3 h-3 text-destructive" />
                           Max: {entry.maxHR}
                         </span>
                       )}
                       {entry.avgHR && (
                         <span className="flex items-center gap-1">
-                          <Activity className="w-3 h-3 text-orange-500" />
+                          <Activity className="w-3 h-3 text-warning" />
                           Avg: {entry.avgHR}
                         </span>
                       )}

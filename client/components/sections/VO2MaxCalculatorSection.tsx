@@ -305,26 +305,34 @@ export function VO2MaxCalculatorSection({
                   {/* Functional Status */}
                   <div
                     className={`p-4 rounded-lg border mt-6 ${
-                      projectionResults.functionalStatus.color.includes(
-                        "emerald",
-                      )
-                        ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
-                        : projectionResults.functionalStatus.color.includes(
-                              "yellow",
-                            )
-                          ? "bg-yellow-50 dark:bg-yellow-950/30 border-yellow-200 dark:border-yellow-800"
-                          : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800"
+                      projectionResults.functionalStatus.color.includes("emerald")
+                        ? "bg-success/10 border-success/20"
+                        : projectionResults.functionalStatus.color.includes("yellow")
+                        ? "bg-warning/10 border-warning/20"
+                        : "bg-destructive/10 border-destructive/20"
                     }`}
                   >
                     <h4 className="font-semibold mb-2 flex items-center gap-2">
                       <projectionResults.functionalStatus.icon
-                        className={`w-5 h-5 ${projectionResults.functionalStatus.color}`}
+                        className={`w-5 h-5 ${
+                          projectionResults.functionalStatus.color.includes("emerald")
+                            ? "text-success"
+                            : projectionResults.functionalStatus.color.includes("yellow")
+                            ? "text-warning"
+                            : "text-destructive"
+                        }`}
                       />
                       Functional Status at {calculatorInputs.targetAge}:{" "}
                       {projectionResults.functionalStatus.status}
                     </h4>
                     <p
-                      className={`text-sm ${projectionResults.functionalStatus.color}`}
+                      className={`text-sm ${
+                        projectionResults.functionalStatus.color.includes("emerald")
+                          ? "text-success"
+                          : projectionResults.functionalStatus.color.includes("yellow")
+                          ? "text-warning"
+                          : "text-destructive"
+                      }`}
                     >
                       {projectionResults.functionalStatus.risk}
                     </p>
@@ -339,14 +347,12 @@ export function VO2MaxCalculatorSection({
                       <span
                         className={`px-3 py-1 rounded-full text-sm font-medium ${
                           projectionResults.classification === "Elite"
-                            ? "bg-emerald-100 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300"
-                            : projectionResults.classification ===
-                                "Highly Active"
-                              ? "bg-primary/10 text-primary"
-                              : projectionResults.classification ===
-                                  "Moderately Active"
-                                ? "bg-yellow-100 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-300"
-                                : "bg-red-100 dark:bg-red-950/30 text-red-700 dark:text-red-300"
+                            ? "bg-success/10 text-success"
+                            : projectionResults.classification === "Highly Active"
+                            ? "bg-primary/10 text-primary"
+                            : projectionResults.classification === "Moderately Active"
+                            ? "bg-warning/10 text-warning"
+                            : "bg-destructive/10 text-destructive"
                         }`}
                       >
                         {projectionResults.classification}

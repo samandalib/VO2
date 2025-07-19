@@ -288,8 +288,8 @@ export function ProtocolCalendarView({
   );
 
   const getPhaseColor = (phase: WeekSchedule["phase"]) => {
-    // Single blue theme for all phases
-    return "bg-blue-100 text-blue-700 border-blue-200";
+    // Use semantic theme classes for all phases
+    return "bg-primary/10 text-primary border-primary/20";
   };
 
   // Mock logging data for demonstration
@@ -448,7 +448,7 @@ export function ProtocolCalendarView({
             <CardTitle className="text-lg">{weekSchedule.title}</CardTitle>
             <Badge
               variant="outline"
-              className="bg-primary/10 text-primary border-primary/20"
+              className={getPhaseColor(weekSchedule.phase)}
             >
               {weekSchedule.phase}
             </Badge>
@@ -507,8 +507,8 @@ export function ProtocolCalendarView({
                                 key={logIndex}
                                 className={`text-xs p-1.5 rounded flex items-center justify-between ${
                                   log.status === "completed"
-                                    ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                                    : "bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800"
+                                    ? "bg-success/10 text-success border border-success/20"
+                                    : "bg-warning/10 text-warning border border-warning/20"
                                 }`}
                               >
                                 <span className="font-medium">
@@ -545,13 +545,13 @@ export function ProtocolCalendarView({
 
             {loggingStatus.completed.length > 0 && (
               <div className="mb-2">
-                <p className="text-xs text-emerald-700 dark:text-emerald-300 mb-1">
+                <p className="text-xs text-success mb-1">
                   ✓ Completed:
                 </p>
-                <ul className="text-xs text-emerald-600 dark:text-emerald-400 space-y-0.5">
+                <ul className="text-xs text-success space-y-0.5">
                   {loggingStatus.completed.map((item, index) => (
                     <li key={index} className="flex items-center gap-1">
-                      <span className="w-1 h-1 bg-emerald-400 rounded-full"></span>
+                      <span className="w-1 h-1 bg-success rounded-full"></span>
                       {item}
                     </li>
                   ))}
@@ -561,13 +561,13 @@ export function ProtocolCalendarView({
 
             {loggingStatus.missing.length > 0 && (
               <div>
-                <p className="text-xs text-orange-700 dark:text-orange-300 mb-1">
+                <p className="text-xs text-warning mb-1">
                   ⚠ Missing:
                 </p>
-                <ul className="text-xs text-orange-600 dark:text-orange-400 space-y-0.5">
+                <ul className="text-xs text-warning space-y-0.5">
                   {loggingStatus.missing.map((item, index) => (
                     <li key={index} className="flex items-center gap-1">
-                      <span className="w-1 h-1 bg-orange-400 rounded-full"></span>
+                      <span className="w-1 h-1 bg-warning rounded-full"></span>
                       {item}
                     </li>
                   ))}

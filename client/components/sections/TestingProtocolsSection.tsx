@@ -70,8 +70,8 @@ export function TestingProtocolsSection({
                 onClick={() => handleProtocolClick("bruce")}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                    <Zap className="w-6 h-6 text-red-600" />
+                  <div className="w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center">
+                    <Zap className="w-6 h-6 text-destructive" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
@@ -79,12 +79,12 @@ export function TestingProtocolsSection({
                     </h3>
                     <div className="flex gap-2 mt-1">
                       <ProtocolTooltip term="CPET">
-                        <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded-full">
                           CPET
                         </span>
                       </ProtocolTooltip>
                       <ProtocolTooltip term="DIRECT">
-                        <span className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded-full border border-red-200">
+                        <span className="text-xs bg-destructive/5 text-destructive px-2 py-1 rounded-full border border-destructive/20">
                           Direct VO₂
                         </span>
                       </ProtocolTooltip>
@@ -122,8 +122,8 @@ export function TestingProtocolsSection({
                 onClick={() => handleProtocolClick("balke")}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                    <Timer className="w-6 h-6 text-orange-600" />
+                  <div className="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center">
+                    <Timer className="w-6 h-6 text-success" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
@@ -131,12 +131,12 @@ export function TestingProtocolsSection({
                     </h3>
                     <div className="flex gap-2 mt-1">
                       <ProtocolTooltip term="CPET">
-                        <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-success/10 text-success px-2 py-1 rounded-full">
                           CPET
                         </span>
                       </ProtocolTooltip>
                       <ProtocolTooltip term="DIRECT">
-                        <span className="text-xs bg-orange-50 text-orange-600 px-2 py-1 rounded-full border border-orange-200">
+                        <span className="text-xs bg-success/5 text-success px-2 py-1 rounded-full border border-success/20">
                           Direct VO₂
                         </span>
                       </ProtocolTooltip>
@@ -174,8 +174,8 @@ export function TestingProtocolsSection({
                 onClick={() => handleProtocolClick("ramp")}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Activity className="w-6 h-6 text-purple-600" />
+                  <div className="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center">
+                    <Activity className="w-6 h-6 text-success" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
@@ -183,12 +183,12 @@ export function TestingProtocolsSection({
                     </h3>
                     <div className="flex gap-2 mt-1">
                       <ProtocolTooltip term="CPET">
-                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-success/10 text-success px-2 py-1 rounded-full">
                           CPET
                         </span>
                       </ProtocolTooltip>
                       <ProtocolTooltip term="DIRECT">
-                        <span className="text-xs bg-purple-50 text-purple-600 px-2 py-1 rounded-full border border-purple-200">
+                        <span className="text-xs bg-success/5 text-success px-2 py-1 rounded-full border border-success/20">
                           Direct VO₂
                         </span>
                       </ProtocolTooltip>
@@ -226,8 +226,8 @@ export function TestingProtocolsSection({
                 onClick={() => handleProtocolClick("astrand")}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Target className="w-6 h-6 text-primary" />
+                  <div className="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center">
+                    <Target className="w-6 h-6 text-success" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
@@ -235,12 +235,12 @@ export function TestingProtocolsSection({
                     </h3>
                     <div className="flex gap-2 mt-1">
                       <ProtocolTooltip term="SUBMAXIMAL">
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                        <span className="text-xs bg-success/10 text-success px-2 py-1 rounded-full">
                           Submaximal
                         </span>
                       </ProtocolTooltip>
                       <ProtocolTooltip term="ESTIMATED">
-                        <span className="text-xs bg-primary/5 text-primary px-2 py-1 rounded-full border border-primary/20">
+                        <span className="text-xs bg-success/5 text-success px-2 py-1 rounded-full border border-success/20">
                           Estimated
                         </span>
                       </ProtocolTooltip>
@@ -278,8 +278,8 @@ export function TestingProtocolsSection({
                 onClick={() => handleProtocolClick("ymca")}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-950/30 rounded-full flex items-center justify-center">
-                    <Users className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                  <div className="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center">
+                    <Users className="w-6 h-6 text-success" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
@@ -287,12 +287,12 @@ export function TestingProtocolsSection({
                     </h3>
                     <div className="flex gap-2 mt-1">
                       <ProtocolTooltip term="SUBMAXIMAL">
-                        <span className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-success/10 text-success px-2 py-1 rounded-full">
                           Submaximal
                         </span>
                       </ProtocolTooltip>
                       <ProtocolTooltip term="ESTIMATED">
-                        <span className="text-xs bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
+                        <span className="text-xs bg-success/5 text-success px-2 py-1 rounded-full border border-success/20">
                           Estimated
                         </span>
                       </ProtocolTooltip>
@@ -330,8 +330,8 @@ export function TestingProtocolsSection({
                 onClick={() => handleProtocolClick("cooper")}
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <Trophy className="w-6 h-6 text-yellow-600" />
+                  <div className="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center">
+                    <Trophy className="w-6 h-6 text-success" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">
@@ -339,17 +339,17 @@ export function TestingProtocolsSection({
                     </h3>
                     <div className="flex gap-2 mt-1">
                       <ProtocolTooltip term="FIELD">
-                        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-success/10 text-success px-2 py-1 rounded-full">
                           Field
                         </span>
                       </ProtocolTooltip>
                       <ProtocolTooltip term="MAXIMAL">
-                        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-success/10 text-success px-2 py-1 rounded-full">
                           Maximal
                         </span>
                       </ProtocolTooltip>
                       <ProtocolTooltip term="ESTIMATED">
-                        <span className="text-xs bg-yellow-50 text-yellow-600 px-2 py-1 rounded-full border border-yellow-200">
+                        <span className="text-xs bg-success/5 text-success px-2 py-1 rounded-full border border-success/20">
                           Estimated
                         </span>
                       </ProtocolTooltip>

@@ -40,15 +40,15 @@ export function ActiveProtocolCard({
   const getIntensityColor = (level: string) => {
     switch (level) {
       case "all-out":
-        return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30";
+        return "text-destructive bg-destructive/10";
       case "very-hard":
-        return "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30";
+        return "text-warning bg-warning/10";
       case "moderate":
-        return "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950/30";
+        return "text-accent bg-accent/10";
       case "low":
-        return "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30";
+        return "text-success bg-success/10";
       default:
-        return "text-gray-600 bg-gray-50";
+        return "text-muted-foreground bg-muted";
     }
   };
 

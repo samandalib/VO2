@@ -206,23 +206,23 @@ export function ProtocolDetailModal({
                     </div>
                   )}
                   {protocol.isGoodForEstimating && (
-                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
-                      <p className="text-emerald-800 dark:text-emerald-300 text-sm font-medium">
+                    <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
+                      <p className="text-success text-sm font-medium">
                         ✅ Good for estimating VO₂max when maximal effort is
                         difficult
                       </p>
                     </div>
                   )}
                   {protocol.isMostUsedInResearch && (
-                    <div className="p-3 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-lg">
-                      <p className="text-purple-800 dark:text-purple-300 text-sm font-medium">
+                    <div className="p-3 bg-accent/10 border border-accent/20 rounded-lg">
+                      <p className="text-accent text-sm font-medium">
                         ✅ Most used in research labs and elite sports settings
                       </p>
                     </div>
                   )}
                   {protocol.specialNote && (
-                    <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                      <p className="text-yellow-800 dark:text-yellow-300 text-sm font-medium">
+                    <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
+                      <p className="text-warning text-sm font-medium">
                         {protocol.specialNote}
                       </p>
                     </div>

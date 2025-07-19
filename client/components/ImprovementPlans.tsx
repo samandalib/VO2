@@ -34,13 +34,13 @@ export function ImprovementPlans({
   const getLevelColor = (level: string) => {
     switch (level) {
       case "Beginner":
-        return "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-300";
+        return "bg-success/10 text-success border-success/20";
       case "Intermediate":
-        return "border-primary/20 bg-primary/10 text-primary";
+        return "bg-primary/10 text-primary border-primary/20";
       case "Advanced":
-        return "border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/30 text-purple-900 dark:text-purple-300";
+        return "bg-accent/10 text-accent border-accent/20";
       default:
-        return "border-border bg-muted text-foreground";
+        return "bg-muted text-foreground border-border";
     }
   };
 

@@ -1551,10 +1551,10 @@ export function VO2MaxForm({
                     <div
                       className={`w-3 h-3 rounded-full ${
                         confidence.level === "High"
-                          ? "bg-emerald-500"
+                          ? "bg-success"
                           : confidence.level === "Medium"
-                            ? "bg-yellow-500"
-                            : "bg-red-500"
+                          ? "bg-warning"
+                          : "bg-destructive"
                       }`}
                     ></div>
                     <span className="font-medium text-sm">
@@ -1581,15 +1581,15 @@ export function VO2MaxForm({
                     key={protocol.id}
                     className={`bg-card rounded-xl p-6 shadow-lg border hover:shadow-xl transition-all duration-300 group animate-in fade-in slide-in-from-bottom-8 duration-700 ${
                       isRecommended
-                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 ring-2 ring-emerald-200 dark:ring-emerald-800"
+                        ? "border-success bg-success/10 ring-2 ring-success/20"
                         : "border-border"
                     }`}
                     style={{ animationDelay: `${index * 100 + 100}ms` }}
                   >
                     {isRecommended && (
                       <div className="mb-4">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 rounded-full text-sm font-medium">
-                          <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-success/10 text-success rounded-full text-sm font-medium">
+                          <div className="w-2 h-2 bg-success rounded-full"></div>
                           Recommended for You
                         </div>
                       </div>

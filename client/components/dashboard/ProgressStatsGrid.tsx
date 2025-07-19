@@ -38,7 +38,7 @@ export function ProgressStatsGrid({ progressStats }: ProgressStatsGridProps) {
           </div>
           <p className="text-xs text-muted-foreground">
             {progressStats?.improvement ? (
-              <span className="text-emerald-600 dark:text-emerald-400">
+              <span className="text-success">
                 +{progressStats.improvement.toFixed(1)} improvement
               </span>
             ) : (

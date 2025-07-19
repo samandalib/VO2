@@ -149,7 +149,7 @@ export function WeeklyTrackingPanel({ userId }: WeeklyTrackingPanelProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-red-500" />
+            <Heart className="w-5 h-5 text-destructive" />
             Weekly Metrics Logging
           </CardTitle>
         </CardHeader>
@@ -167,7 +167,7 @@ export function WeeklyTrackingPanel({ userId }: WeeklyTrackingPanelProps) {
     <Card className="spotify-card border-none bg-card/80 backdrop-blur-xl h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Heart className="w-5 h-5 text-red-500" />
+          <Heart className="w-5 h-5 text-destructive" />
           Weekly Metrics Logging
         </CardTitle>
         <CardDescription>
@@ -177,10 +177,10 @@ export function WeeklyTrackingPanel({ userId }: WeeklyTrackingPanelProps) {
         {/* Preview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
           {/* RHR Preview Card */}
-          <div className="bg-gradient-to-br from-spotify-green/10 to-emerald-400/10 dark:from-spotify-green/20 dark:to-emerald-400/20 p-6 rounded-2xl border border-spotify-green/20 shadow-lg hover:shadow-xl transition-all duration-300">
+          <div className="bg-gradient-to-br from-success/10 to-success/20 p-6 rounded-2xl border border-success/20 shadow-lg hover:shadow-xl transition-all duration-300">
             <div className="flex items-center gap-4 mb-3">
-              <div className="p-2 rounded-full bg-spotify-green/20">
-                <Heart className="w-6 h-6 text-spotify-green" />
+              <div className="p-2 rounded-full bg-success/20">
+                <Heart className="w-6 h-6 text-success" />
               </div>
               <div>
                 <h4 className="text-base font-semibold text-foreground">
@@ -193,11 +193,11 @@ export function WeeklyTrackingPanel({ userId }: WeeklyTrackingPanelProps) {
             </div>
             <div className="text-sm text-muted-foreground space-y-2 mt-4">
               <p className="flex items-center gap-2">
-                <span className="w-1 h-1 bg-spotify-green rounded-full"></span>
+                <span className="w-1 h-1 bg-success rounded-full"></span>
                 Measure before getting out of bed
               </p>
               <p className="flex items-center gap-2">
-                <span className="w-1 h-1 bg-spotify-green rounded-full"></span>
+                <span className="w-1 h-1 bg-success rounded-full"></span>
                 Shows cardiovascular fitness trends
               </p>
             </div>
