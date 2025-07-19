@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { ensureUserProfile } from "@/lib/ensureUserProfile";
+import { useLocation } from "react-router-dom";
 
 interface AuthContextType {
   user: User | null;
@@ -32,8 +33,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userUuid, setUserUuid] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
+    // Skip session check on /auth/callback to avoid race condition
+    if (location.pathname === "/auth/callback") {
+      return;
+    }
+
     // Check for demo account first
     const checkAuth = async () => {
       try {
@@ -145,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener("storage", handleStorageChange);
       clearInterval(intervalId);
     };
-  }, []);
+  }, [location.pathname]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
