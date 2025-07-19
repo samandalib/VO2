@@ -312,6 +312,17 @@ export function Dashboard() {
     }
   };
 
+  useEffect(() => {
+    if (!effectiveUser && !loading) {
+      navigate("/", { state: { showAuthModal: true } });
+    }
+  }, [effectiveUser, loading, navigate]);
+
+  if (!effectiveUser) {
+    // Optionally render nothing or a spinner while redirecting
+    return null;
+  }
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -323,24 +334,6 @@ export function Dashboard() {
             </h2>
             <p className="text-muted-foreground">
               Checking authentication status
-            </p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  if (!effectiveUser) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <Activity className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-muted-foreground mb-2">
-              Access Denied
-            </h2>
-            <p className="text-muted-foreground">
-              Please sign in to access your dashboard
             </p>
           </div>
         </div>

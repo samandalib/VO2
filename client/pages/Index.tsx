@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { RagAIAssistantHero } from "@/components/sections/RagAIAssistantHero";
 import { FeaturesSection } from "@/components/sections/FeaturesSection";
@@ -17,7 +17,9 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function Index() {
   const navigate = useNavigate();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const location = useLocation();
+  const showAuthModal = location.state?.showAuthModal || false;
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(showAuthModal);
   const { user, signOut } = useAuth();
 
   // Refs for scrolling to sections
@@ -384,13 +386,11 @@ export default function Index() {
                   alert("Sign out failed: " + error);
                 }
               }}
-              variant="outline"
-              className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300 cursor-pointer relative z-50"
+              variant="destructive"
+              className="rounded-full p-2 w-10 h-10 flex items-center justify-center cursor-pointer relative z-50"
               disabled={false}
-              style={{ border: '2px solid blue', backgroundColor: 'yellow' }}
             >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
+              <LogOut className="w-5 h-5" />
             </Button>
           </div>
         ) : (
