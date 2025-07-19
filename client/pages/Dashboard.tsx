@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { useAuthV2 } from "@/contexts/SupabaseAuthContextV2";
 import { supabase } from "@/lib/supabase";
 import { getProtocolById } from "@/lib/protocols/data";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -39,6 +40,7 @@ import {
 
 export function Dashboard() {
   const { user, signOut, loading } = useAuth();
+  const { user: userV2, signOut: signOutV2, loading: loadingV2 } = useAuthV2();
 
   // Fallback: Check localStorage directly if auth context doesn't have user
   const [localUser, setLocalUser] = useState(null);
@@ -145,8 +147,8 @@ export function Dashboard() {
     }
   }, [user, loading]);
 
-  // Use either auth context user or localStorage user
-  const effectiveUser = user || localUser;
+  // Use either auth context user (original or V2) or localStorage user
+  const effectiveUser = user || userV2 || localUser;
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -203,7 +205,11 @@ export function Dashboard() {
   }, [profileModalOpen, effectiveUser?.id]);
 
   const handleSignOut = async () => {
-    await signOut();
+    if (user) {
+      await signOut();
+    } else if (userV2) {
+      await signOutV2();
+    }
     navigate("/");
   };
 
@@ -313,17 +319,32 @@ export function Dashboard() {
   };
 
   useEffect(() => {
-    if (!effectiveUser && !loading) {
-      navigate("/", { state: { showAuthModal: true } });
+    // Skip authentication check for V2 demo users
+    const mockUser = localStorage.getItem("mock_auth_user");
+    if (mockUser) {
+      try {
+        const parsedUser = JSON.parse(mockUser);
+        // If it's a V2 demo user, don't redirect
+        if (parsedUser.id === "f589c496-0283-44e6-8db5-aad1778f8f32") {
+          console.log("🚀 V2 demo user detected - skipping auth check");
+          return;
+        }
+      } catch (error) {
+        console.error("Error parsing mock user:", error);
+      }
     }
-  }, [effectiveUser, loading, navigate]);
+    
+    if (!effectiveUser && !loading && !loadingV2) {
+      navigate("/", { state: { showAuthModal: false } });
+    }
+  }, [effectiveUser, loading, loadingV2, navigate]);
 
   if (!effectiveUser) {
     // Optionally render nothing or a spinner while redirecting
     return null;
   }
 
-  if (loading) {
+  if (loading || loadingV2) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[60vh]">

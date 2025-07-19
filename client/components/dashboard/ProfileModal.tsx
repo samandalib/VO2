@@ -2,11 +2,12 @@ import React, { useEffect, useState, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, CheckCircle, User as UserIcon, Upload as UploadIcon } from "lucide-react";
+import { AlertCircle, CheckCircle, User as UserIcon, Upload as UploadIcon, Lock as LockIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Separator } from "@/components/ui/separator";
 
 const RACE_OPTIONS = [
   "White",
@@ -27,6 +28,16 @@ interface ProfileModalProps {
 }
 
 const PLACEHOLDER_IMG = "https://ui-avatars.com/api/?name=User&background=eee&color=888&size=128";
+
+// Simple password hashing function (matches V2 auth context)
+const hashPassword = async (password: string): Promise<string> => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+};
 
 function getDefaultName(user: any) {
   if (user?.name && user.name.trim() !== "") return user.name;
@@ -54,6 +65,14 @@ export function ProfileModal({ user, open, onClose }: ProfileModalProps) {
   const autoSaveTimeout = useRef<NodeJS.Timeout | null>(null);
   const lastLoadedUserId = useRef<string | null>(null);
   const [unitSystem, setUnitSystem] = useState<'metric' | 'imperial'>('metric');
+  
+  // Password reset state
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   // Conversion helpers
   const kgToLbs = (kg: string) => kg ? (parseFloat(kg) * 2.20462).toFixed(1) : '';
@@ -231,6 +250,58 @@ export function ProfileModal({ user, open, onClose }: ProfileModalProps) {
     setUploading(false);
   };
 
+  const handlePasswordReset = async () => {
+    // Validate passwords
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters long");
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return;
+    }
+    
+    setResettingPassword(true);
+    setPasswordError("");
+    setPasswordSuccess("");
+    
+    try {
+      if (isDemo) {
+        // For demo users, just simulate success
+        setPasswordSuccess("Password updated successfully! (Demo mode)");
+        setNewPassword("");
+        setConfirmPassword("");
+        setShowPasswordReset(false);
+        setResettingPassword(false);
+        return;
+      }
+      
+      // Hash the new password
+      const passwordHash = await hashPassword(newPassword);
+      
+      // Update the password in user_profiles table
+      const { error } = await supabase
+        .from("user_profiles")
+        .update({ password_hash: passwordHash })
+        .eq("id", user.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setPasswordSuccess("Password updated successfully!");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowPasswordReset(false);
+    } catch (error) {
+      console.error("Password reset error:", error);
+      setPasswordError("Failed to update password. Please try again.");
+    }
+    
+    setResettingPassword(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
@@ -345,6 +416,89 @@ export function ProfileModal({ user, open, onClose }: ProfileModalProps) {
               </SelectContent>
             </Select>
           </div>
+          
+          <Separator />
+          
+          {/* Password Reset Section */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <LockIcon className="w-5 h-5 text-gray-600" />
+              <Label className="text-base font-medium">Password Settings</Label>
+            </div>
+            
+            {!showPasswordReset ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPasswordReset(true)}
+                className="w-full"
+              >
+                Set or Reset Password
+              </Button>
+            ) : (
+              <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
+                <div>
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    minLength={6}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    minLength={6}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={handlePasswordReset}
+                    disabled={resettingPassword || !newPassword || !confirmPassword}
+                    className="flex-1"
+                  >
+                    {resettingPassword ? "Updating..." : "Update Password"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowPasswordReset(false);
+                      setNewPassword("");
+                      setConfirmPassword("");
+                      setPasswordError("");
+                      setPasswordSuccess("");
+                    }}
+                    disabled={resettingPassword}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                {passwordError && (
+                  <div className="flex items-center text-red-600 text-sm">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {passwordError}
+                  </div>
+                )}
+                {passwordSuccess && (
+                  <div className="flex items-center text-green-600 text-sm">
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    {passwordSuccess}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          
           {error && <div className="flex items-center text-red-600 text-sm mt-2"><AlertCircle className="w-4 h-4 mr-1" />{error}</div>}
           {success && <div className="flex items-center text-green-600 text-sm mt-2"><CheckCircle className="w-4 h-4 mr-1" />Profile saved!</div>}
           {/* Save button removed, auto-save is now active */}
