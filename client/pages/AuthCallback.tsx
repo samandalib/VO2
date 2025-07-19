@@ -16,54 +16,33 @@ export default function AuthCallback() {
       setTimeout(() => navigate("/"), 4000);
       return;
     }
-    const handleAuthCallback = async () => {
+    const processMagicLink = async () => {
       try {
         console.log("🔄 Processing OAuth callback...");
         console.log("🔧 Current URL:", window.location.href);
         console.log("🔧 URL hash:", window.location.hash);
         console.log("🔧 Supabase client available:", !!supabase);
-        
-        // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('OAuth callback timeout')), 10000)
-        );
-        
-        const sessionPromise = supabase.auth.getSession();
-        
-        let data, error;
-        try {
-          const result = await Promise.race([sessionPromise, timeoutPromise]) as any;
-          data = result.data;
-          error = result.error;
-          console.log("✅ Session check completed");
-        } catch (timeoutError) {
-          console.warn("⚠️ Session check timed out, proceeding with fallback...");
-          // Try to get session without waiting
-          try {
-            const fallbackResult = await supabase.auth.getSession();
-            data = fallbackResult.data;
-            error = fallbackResult.error;
-          } catch (fallbackError) {
-            console.error("❌ Fallback session check also failed:", fallbackError);
-            setError("Authentication timeout. Please try again.");
-            setTimeout(() => navigate("/"), 3000);
-            return;
-          }
-        }
-        
+        // First, process the magic link hash and set the session
+        const { data, error } = await supabase.auth.getUser();
         if (error) {
-          console.error("❌ Error getting session:", error);
+          console.error("❌ Error getting user from magic link:", error);
           setError("Authentication failed. Please try again.");
           setTimeout(() => navigate("/"), 3000);
           return;
         }
-
-        if (data.session) {
-          console.log("✅ Authentication successful, redirecting to dashboard");
-          navigate("/dashboard", { replace: true });
+        if (data?.user) {
+          // Now the session should be set, so getSession will work
+          const { data: sessionData } = await supabase.auth.getSession();
+          if (sessionData?.session) {
+            console.log("✅ Authentication successful, redirecting to dashboard");
+            navigate("/dashboard", { replace: true });
+          } else {
+            setError("No session found. Please try again.");
+            setTimeout(() => navigate("/"), 3000);
+          }
         } else {
-          console.log("⚠️ No session found, redirecting to home");
-          navigate("/", { replace: true });
+          setError("No user found. Please try again.");
+          setTimeout(() => navigate("/"), 3000);
         }
       } catch (err) {
         console.error("❌ Error in auth callback:", err);
@@ -71,8 +50,7 @@ export default function AuthCallback() {
         setTimeout(() => navigate("/"), 3000);
       }
     };
-
-    handleAuthCallback();
+    processMagicLink();
   }, [navigate]);
 
   if (error) {
