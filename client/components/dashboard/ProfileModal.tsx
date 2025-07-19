@@ -29,6 +29,9 @@ interface ProfileModalProps {
 
 const PLACEHOLDER_IMG = "https://ui-avatars.com/api/?name=User&background=eee&color=888&size=128";
 
+// API base URL for auth endpoints
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://vo-2-gamma.vercel.app/api';
+
 // Simple password hashing function (matches V2 auth context)
 const hashPassword = async (password: string): Promise<string> => {
   const encoder = new TextEncoder();
@@ -277,16 +280,16 @@ export function ProfileModal({ user, open, onClose }: ProfileModalProps) {
         return;
       }
       
-      // Hash the new password
+      // For V2 users, update the password_hash in user_profiles table
+      // This works with the V2 authentication system
       const passwordHash = await hashPassword(newPassword);
-      
-      // Update the password in user_profiles table
       const { error } = await supabase
         .from("user_profiles")
         .update({ password_hash: passwordHash })
         .eq("id", user.id);
       
       if (error) {
+        console.error("Supabase error:", error);
         throw error;
       }
       
