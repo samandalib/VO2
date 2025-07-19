@@ -7,12 +7,11 @@ import { TestingProtocolsSection } from "@/components/sections/TestingProtocolsS
 import { TrainingProtocolsSection } from "@/components/sections/TrainingProtocolsSection";
 import { VO2MaxCalculatorSection } from "@/components/sections/VO2MaxCalculatorSection";
 import { AuthModal } from "@/components/auth/AuthModal";
-import { SimpleAuthModalV2 } from "@/components/auth/SimpleAuthModalV2";
+import { SimpleAuthModal } from "@/components/auth/SimpleAuthModal";
 import { CheckCircle, AlertTriangle, LogIn, LogOut, User } from "lucide-react";
 import { VO2MaxData } from "@shared/api";
 import { DatabaseConnectionTest } from "@/components/debug/DatabaseConnectionTest";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
-import { useAuthV2 } from "@/contexts/SupabaseAuthContextV2";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
@@ -21,10 +20,8 @@ export default function Index() {
   const navigate = useNavigate();
   const location = useLocation();
   const showAuthModal = location.state?.showAuthModal || false;
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(showAuthModal);
-  const [isAuthModalV2Open, setIsAuthModalV2Open] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(showAuthModal || false);
   const { user, signOut } = useAuth();
-  const { user: userV2, signOut: signOutV2 } = useAuthV2();
 
   // Refs for scrolling to sections
   const projectionCalculatorRef = useRef<HTMLDivElement>(null);
@@ -355,19 +352,12 @@ export default function Index() {
     setIsAuthModalOpen(true);
   };
 
-  const handleSignInV2 = () => {
-    setIsAuthModalV2Open(true);
-  };
-
   const handleAuthSuccess = () => {
     // Redirect to dashboard after successful authentication
     navigate("/dashboard");
   };
 
-  const handleAuthSuccessV2 = () => {
-    // Redirect to dashboard after successful V2 authentication
-    navigate("/dashboard");
-  };
+
 
   // Always render the main homepage content
   return (
@@ -375,11 +365,11 @@ export default function Index() {
       {/* Header with Theme Toggle and Auth Buttons */}
       <div className="absolute top-0 right-0 p-6 z-50 flex items-center gap-3">
         <ThemeToggle />
-        {user || userV2 ? (
+        {user ? (
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/80 backdrop-blur-sm px-3 py-2 rounded-md">
               <User className="w-4 h-4" />
-              <span className="font-mono">{user?.email || userV2?.email}</span>
+              <span className="font-mono">{user?.email}</span>
             </div>
             <Button
               onClick={async () => {
@@ -387,11 +377,7 @@ export default function Index() {
                 alert("Sign out button clicked!");
                 try {
                   console.log("Calling signOut function...");
-                  if (user) {
-                    await signOut();
-                  } else if (userV2) {
-                    await signOutV2();
-                  }
+                  await signOut();
                   // Clear all browser data after sign out
                   localStorage.clear();
                   sessionStorage.clear();
@@ -419,14 +405,6 @@ export default function Index() {
             >
               <LogIn className="w-4 h-4 mr-2" />
               Sign In
-            </Button>
-            <Button
-              onClick={handleSignInV2}
-              variant="outline"
-              className="bg-background/80 backdrop-blur-sm hover:bg-background/90 transition-all duration-300 border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
-            >
-              <LogIn className="w-4 h-4 mr-2" />
-              Sign In V2
             </Button>
           </div>
         )}
@@ -457,10 +435,10 @@ export default function Index() {
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={handleAuthSuccess}
       />
-      <SimpleAuthModalV2
-        isOpen={isAuthModalV2Open}
-        onClose={() => setIsAuthModalV2Open(false)}
-        onSuccess={handleAuthSuccessV2}
+      <SimpleAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
       />
     </div>
   );

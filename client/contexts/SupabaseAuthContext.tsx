@@ -4,13 +4,30 @@ import { supabase } from "@/lib/supabase";
 import { ensureUserProfile } from "@/lib/ensureUserProfile";
 import { useLocation } from "react-router-dom";
 
+// Password validation function for auth
+const validatePassword = (password: string): string | null => {
+  if (password.length < 8) {
+    return "Password must be at least 8 characters long";
+  }
+  if (!/[A-Z]/.test(password)) {
+    return "Password must contain at least one uppercase letter";
+  }
+  if (!/[a-z]/.test(password)) {
+    return "Password must contain at least one lowercase letter";
+  }
+  if (!/[0-9]/.test(password)) {
+    return "Password must contain at least one number";
+  }
+  return null;
+};
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (
     email: string,
-    password: string,
+    password?: string,
     name?: string,
   ) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -155,44 +172,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [location.pathname]);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    // Use Supabase's built-in auth system
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
-    });
-    return { error };
-  };
-
-  const signUp = async (email: string, password: string, name?: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name: name || null,
-        },
-      },
     });
     
-    // If sign-up was successful, create user profile and sign in immediately
-    if (data.user && !error) {
-      console.log("🎯 Creating user profile after sign-up");
-      const uuid = await ensureUserProfile(data.user);
-      
-      // Automatically sign in the user (bypass email confirmation)
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (signInError) {
-        console.error("❌ Auto sign-in failed:", signInError);
-        return { error: signInError };
-      }
-      
-      console.log("✅ User signed up and signed in successfully");
+    if (data.user) {
+      // User exists in Supabase Auth, sign in successful
+      return { error: null };
     }
     
     return { error };
+  };
+
+  const signUp = async (email: string, password?: string, name?: string) => {
+    // Sign up only uses magic link - password is set later in profile
+    console.log("🎯 Creating account with magic link only");
+    const { error } = await signInWithMagicLink(email);
+    if (error) {
+      return { error };
+    }
+    
+    // Note: User profile will be created when they first sign in via magic link
+    // This ensures we have the correct user ID from Supabase Auth
+    
+    console.log("✅ Magic link sent for account creation");
+    return { error: null };
   };
 
   const signOut = async () => {
@@ -293,6 +299,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
+    
+    if (!error) {
+      console.log("✅ Magic link sent successfully");
+    }
+    
     return { error };
   };
 
@@ -309,4 +320,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
+} 
