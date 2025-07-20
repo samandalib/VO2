@@ -1,35 +1,108 @@
-# Authentication Architecture
+# Authentication System
 
-## Production
-- **Provider:** Supabase Auth
-- **Methods:**
-  - Email/password
-  - Magic link (passwordless)
-  - OAuth (Google, etc.) — **Currently NOT enabled**
-- **Session Management:** Supabase client SDK, JWT tokens
-- **Admin Access:** Determined by `is_admin` in `user_profiles`
-- **Security:** No mock/demo users in production; all access is real
+## Overview
+The VO2Max Training App uses Supabase for authentication with multiple sign-in methods and admin access control.
 
-> **Note:**
-> Google OAuth is **not currently enabled** in production. The codebase includes:
-> - Environment variable checks for `VITE_GOOGLE_CLIENT_ID`.
-> - Placeholder logic in auth context and modals to support Google OAuth if enabled in the future.
-> - To enable: set up Google Cloud OAuth credentials, add your domain to allowed origins, and set the env variable in your deployment.
+## Authentication Methods
 
-## Development
-- **All production methods available**
-- **Mock/Demo Users:**
-  - Can sign in as a demo user (localStorage `mock_auth_user`)
-  - Only enabled in dev mode (`import.meta.env.DEV`)
-  - Never runs in production
-- **Testing:**
-  - Use mock users for UI/dev testing without real auth
+### 1. Email/Password Authentication
+- Standard email and password sign-in
+- Password validation and security
+- Error handling for invalid credentials
 
-## Key Files
-- `client/contexts/SupabaseAuthContext.tsx`
-- `client/contexts/AuthContext.tsx`
-- `client/components/auth/SimpleAuthModal.tsx`
-- `client/components/auth/DevAuthModal.tsx`
+### 2. Magic Link Authentication
+- Passwordless sign-in via email
+- Secure token-based authentication
+- Automatic session management
 
----
-For Google OAuth setup, see `GOOGLE_OAUTH_SETUP.md`. 
+### 3. Google OAuth
+- One-click Google sign-in
+- Automatic profile creation
+- Secure token handling
+
+### 4. Demo Mode (Development)
+- Local development authentication
+- Mock user for testing
+- Stored in localStorage
+
+## Session Management
+
+### Session Persistence
+- Automatic session restoration on page load
+- Timeout handling with 5-second fallback
+- Graceful error handling for network issues
+
+### Session Termination Fixes
+- **Issue**: Sessions were terminating due to admin status check failures
+- **Solution**: Improved error handling in `useAdminStatus` hook
+- **Result**: Sessions now persist properly without crashes
+
+### Admin Status Checking
+- **Hook**: `useAdminStatus(userId)` - Returns `{ isAdmin, loading }`
+- **Database**: Checks `user_profiles.is_admin` column
+- **Error Handling**: Graceful fallback to `false` on errors
+- **Performance**: Prevents session crashes from failed queries
+
+## Admin Access Control
+
+### Admin Privileges
+- **Determined by**: `is_admin` column in `user_profiles` table
+- **Default**: `false` for all users
+- **Setting Admin**: Use SQL script `scripts/set-admin-status.sql`
+
+### Admin Features
+- RAG Admin Dashboard access
+- System configuration management
+- User management capabilities
+
+## Key Components
+
+### Authentication Context
+- **File**: `client/contexts/SupabaseAuthContext.tsx`
+- **Hook**: `useAuth()` - Provides user state and auth methods
+- **Features**: Session management, user state, auth methods
+
+### Admin Status Hook
+- **File**: `client/hooks/useAdminStatus.ts`
+- **Purpose**: Check user admin privileges
+- **Error Handling**: Robust error handling prevents session crashes
+
+### Auth Modals
+- **SimpleAuthModal**: Main authentication interface
+- **Features**: Email/password, magic link, Google OAuth, demo mode
+- **Fixed**: Removed duplicate modal rendering that caused DOM conflicts
+
+## Database Schema
+
+### User Profiles Table
+```sql
+CREATE TABLE public.user_profiles (
+  id uuid NOT NULL,
+  email text,
+  name text,
+  picture text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  is_admin boolean DEFAULT false,
+  CONSTRAINT user_profiles_pkey PRIMARY KEY (id)
+);
+```
+
+## Recent Fixes
+
+### Session Termination Issues
+1. **Duplicate Auth Modals**: Removed conflicting `AuthModal` from `Index.tsx`
+2. **Admin Status Errors**: Improved error handling in `useAdminStatus` hook
+3. **Database Schema**: Added missing `is_admin` column to schema
+4. **Error Recovery**: Admin status failures no longer crash sessions
+
+### Migration Scripts
+- `scripts/add-admin-column.sql`: Safe column addition
+- `scripts/set-admin-status.sql`: Grant admin privileges
+
+## Security Considerations
+
+- Row Level Security (RLS) enabled on all tables
+- User data isolation through foreign key constraints
+- Secure token handling and validation
+- Admin privileges require explicit database update 
