@@ -9,7 +9,7 @@ export function useAdminStatus(userId: string | undefined) {
     supabase
       .from("user_profiles")
       .select("is_admin")
-      .eq("user_id", userId)
+      .eq("id", userId)
       .single()
       .then(({ data }) => setIsAdmin(!!data?.is_admin));
   }, [userId]);
