@@ -152,6 +152,7 @@ export function Dashboard() {
   // Use auth context user or localStorage user
   const effectiveUser = user || localUser;
   const isAdmin = useAdminStatus(effectiveUser?.id);
+  console.log('[Admin Debug] effectiveUser.id:', effectiveUser?.id, 'isAdmin:', isAdmin);
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
