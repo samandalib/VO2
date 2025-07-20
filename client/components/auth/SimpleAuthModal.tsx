@@ -128,20 +128,22 @@ export function SimpleAuthModal({
   };
 
   const handleDemo = () => {
-    console.log("🚀 Demo account clicked - navigating directly to dashboard");
-    
-    // Set demo user in localStorage for auth context
-    const mockUser = {
-      id: "f589c496-0283-44e6-8db5-aad1778f8f32",
-      email: "demo@vo2max.app",
-      name: "Demo User",
-      picture: "https://via.placeholder.com/40",
-      provider: "demo" as const,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    localStorage.setItem("mock_auth_user", JSON.stringify(mockUser));
+    if (import.meta.env.DEV) {
+      console.log("🚀 Demo account clicked - navigating directly to dashboard");
+      
+      // Set demo user in localStorage for auth context
+      const mockUser = {
+        id: "f589c496-0283-44e6-8db5-aad1778f8f32",
+        email: "demo@vo2max.app",
+        name: "Demo User",
+        picture: "https://via.placeholder.com/40",
+        provider: "demo" as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      localStorage.setItem("mock_auth_user", JSON.stringify(mockUser));
+    }
     
     // Close modal and navigate immediately
     onClose();

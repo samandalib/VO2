@@ -126,20 +126,22 @@ export function Dashboard() {
 
   useEffect(() => {
     if (!user && !loading) {
-      const mockUser = localStorage.getItem("mock_auth_user");
-      if (mockUser) {
-        try {
-          const parsedUser = JSON.parse(mockUser);
-          setLocalUser({
-            id: parsedUser.id,
-            email: parsedUser.email,
-            user_metadata: {
-              name: parsedUser.name,
-              picture: parsedUser.picture,
-            },
-          });
-        } catch (error) {
-          console.error("Error parsing localStorage user:", error);
+      if (import.meta.env.DEV) {
+        const mockUser = localStorage.getItem("mock_auth_user");
+        if (mockUser) {
+          try {
+            const parsedUser = JSON.parse(mockUser);
+            setLocalUser({
+              id: parsedUser.id,
+              email: parsedUser.email,
+              user_metadata: {
+                name: parsedUser.name,
+                picture: parsedUser.picture,
+              },
+            });
+          } catch (error) {
+            console.error("Error parsing localStorage user:", error);
+          }
         }
       }
     } else if (user) {

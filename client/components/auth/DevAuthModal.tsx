@@ -18,16 +18,18 @@ export function DevAuthModal({ isOpen, onClose }: DevAuthModalProps) {
   const navigate = useNavigate();
 
   const handleDemoLogin = () => {
-    const mockUser = {
-      id: "mock-user-123",
-      email: "demo@vo2max.app",
-      name: "Demo User",
-      picture: "https://randomuser.me/api/portraits/men/1.jpg",
-      provider: "demo",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    localStorage.setItem("mock_auth_user", JSON.stringify(mockUser));
+    if (import.meta.env.DEV) {
+      const mockUser = {
+        id: "mock-user-123",
+        email: "demo@vo2max.app",
+        name: "Demo User",
+        picture: "https://randomuser.me/api/portraits/men/1.jpg",
+        provider: "demo",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem("mock_auth_user", JSON.stringify(mockUser));
+    }
     onClose();
     navigate("/dashboard");
   };

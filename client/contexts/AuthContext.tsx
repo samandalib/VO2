@@ -92,11 +92,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       try {
         // Check for mock user first (for testing)
-        const mockUser = localStorage.getItem("mock_auth_user");
-        if (mockUser) {
-          console.log("Found mock user, using for testing");
-          dispatch({ type: "SET_USER", user: JSON.parse(mockUser) });
-          return;
+        if (import.meta.env.DEV) {
+          const mockUser = localStorage.getItem("mock_auth_user");
+          if (mockUser) {
+            console.log("Found mock user, using for testing");
+            dispatch({ type: "SET_USER", user: JSON.parse(mockUser) });
+            return;
+          }
         }
 
         // Try real authentication
@@ -335,7 +337,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     try {
       // Remove mock user if exists
-      localStorage.removeItem("mock_auth_user");
+      if (import.meta.env.DEV) {
+        localStorage.removeItem("mock_auth_user");
+      }
 
       await AuthAPI.signOut();
 

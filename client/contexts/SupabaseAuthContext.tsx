@@ -62,28 +62,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const checkAuth = async () => {
       try {
         console.log("[Auth] Starting initial session check...");
-        const mockUser = localStorage.getItem("mock_auth_user");
-        if (mockUser) {
-          console.log("Found mock user in localStorage:", mockUser);
-          const parsedUser = JSON.parse(mockUser);
-          // Create a mock User object compatible with Supabase
-          const supabaseUser: User = {
-            id: parsedUser.id,
-            email: parsedUser.email,
-            user_metadata: {
-              name: parsedUser.name,
-              picture: parsedUser.picture,
-            },
-            app_metadata: {},
-            aud: "authenticated",
-            created_at: parsedUser.createdAt,
-            updated_at: parsedUser.updatedAt,
-          } as User;
-          console.log("Setting demo user:", supabaseUser);
-          setUser(supabaseUser);
-          setUserUuid(supabaseUser.id);
-          setLoading(false);
-          return;
+        if (import.meta.env.DEV) {
+          const mockUser = localStorage.getItem("mock_auth_user");
+          if (mockUser) {
+            console.log("Found mock user in localStorage:", mockUser);
+            const parsedUser = JSON.parse(mockUser);
+            // Create a mock User object compatible with Supabase
+            const supabaseUser: User = {
+              id: parsedUser.id,
+              email: parsedUser.email,
+              user_metadata: {
+                name: parsedUser.name,
+                picture: parsedUser.picture,
+              },
+              app_metadata: {},
+              aud: "authenticated",
+              created_at: parsedUser.createdAt,
+              updated_at: parsedUser.updatedAt,
+            } as User;
+            console.log("Setting demo user:", supabaseUser);
+            setUser(supabaseUser);
+            setUserUuid(supabaseUser.id);
+            setLoading(false);
+            return;
+          }
         }
 
         // Get initial session from Supabase with timeout
@@ -129,7 +131,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_OUT") {
-        localStorage.removeItem("mock_auth_user");
+        if (import.meta.env.DEV) {
+          localStorage.removeItem("mock_auth_user");
+        }
         setUser(null);
         setUserUuid(null);
         setLoading(false);
@@ -147,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Also listen for localStorage changes (for demo accounts)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "mock_auth_user") {
+      if (import.meta.env.DEV && e.key === "mock_auth_user") {
         console.log("localStorage changed for mock_auth_user");
         checkAuth();
       }
@@ -157,10 +161,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Check localStorage periodically in case storage events don't fire
     const intervalId = setInterval(() => {
-      const mockUser = localStorage.getItem("mock_auth_user");
-      if (mockUser && !user) {
-        console.log("Periodic check found mock user, triggering auth check");
-        checkAuth();
+      if (import.meta.env.DEV) {
+        const mockUser = localStorage.getItem("mock_auth_user");
+        if (mockUser && !user) {
+          console.log("Periodic check found mock user, triggering auth check");
+          checkAuth();
+        }
       }
     }, 1000);
 
@@ -213,7 +219,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Clear all auth-related data from localStorage
       console.log("🗑️ Clearing all auth data from localStorage...");
-      localStorage.removeItem("mock_auth_user");
+      if (import.meta.env.DEV) {
+        localStorage.removeItem("mock_auth_user");
+      }
       localStorage.removeItem("supabase.auth.token");
       localStorage.removeItem("supabase.auth.expires_at");
       localStorage.removeItem("supabase.auth.refresh_token");
