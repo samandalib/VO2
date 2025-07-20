@@ -6,11 +6,10 @@ import { FeaturesSection } from "@/components/sections/FeaturesSection";
 import { TestingProtocolsSection } from "@/components/sections/TestingProtocolsSection";
 import { TrainingProtocolsSection } from "@/components/sections/TrainingProtocolsSection";
 import { VO2MaxCalculatorSection } from "@/components/sections/VO2MaxCalculatorSection";
-import { AuthModal } from "@/components/auth/AuthModal";
 import { SimpleAuthModal } from "@/components/auth/SimpleAuthModal";
 import { CheckCircle, AlertTriangle, LogIn, LogOut, User } from "lucide-react";
 import { VO2MaxData } from "@shared/api";
-import { DatabaseConnectionTest } from "@/components/debug/DatabaseConnectionTest";
+
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -430,11 +429,6 @@ export default function Index() {
       </div>
       <FeaturesSection />
       <TrainingProtocolsSection onStartAssessment={handleStartAssessment} />
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={handleAuthSuccess}
-      />
       <SimpleAuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}

@@ -10,6 +10,7 @@ CREATE TABLE public.user_profiles (
   email TEXT,
   name TEXT,
   picture TEXT,
+  is_admin BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
