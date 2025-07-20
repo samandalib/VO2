@@ -269,7 +269,7 @@ export const ragAdminApi = {
       return [
         {
           id: "mock-chat-001",
-          user: "hesam.andalib@gmail.com",
+          user: "demo@vo2max.app",
           message: "What is the best protocol for improving VO2 max?",
           responseTime: 1.2,
           status: "success" as const,

@@ -30,6 +30,7 @@ import { ProfileModal } from "@/components/dashboard/ProfileModal";
 // Hooks
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { UserProtocolsService } from "@/lib/api/userProtocols";
+import { useAdminStatus } from "@/hooks/useAdminStatus";
 
 // Utils
 import {
@@ -148,6 +149,7 @@ export function Dashboard() {
 
   // Use auth context user or localStorage user
   const effectiveUser = user || localUser;
+  const isAdmin = useAdminStatus(effectiveUser?.id);
 
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -368,6 +370,12 @@ export function Dashboard() {
 
   return (
     <DashboardLayout>
+      {/* Admin Panel Button */}
+      {isAdmin && (
+        <div className="flex justify-end mb-4">
+          <Button variant="outline" onClick={() => navigate("/admin/rag")}>Admin Panel</Button>
+        </div>
+      )}
       {/* Desktop Layout - Show all content */}
       <div className="hidden md:block">
         {/* Dashboard Header */}

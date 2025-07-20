@@ -4,7 +4,7 @@ async function createSampleDataForUser() {
   try {
     // Find the user by email
     const user = await prisma.user.findUnique({
-      where: { email: "hesam.andalib@gmail.com" },
+      where: { email: "demo@vo2max.app" },
     });
 
     if (!user) {
