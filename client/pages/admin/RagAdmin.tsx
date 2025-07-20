@@ -210,7 +210,34 @@ export function RagAdmin() {
   };
 
   // Check if user is admin (you can implement your own admin check logic)
-  const isAdmin = user?.email === "hesam.andalib@gmail.com" || user?.email === "demo@vo2max.app";
+  // Temporary: Allow access for testing in production
+  const isAdmin = user?.email === "hesam.andalib@gmail.com" || 
+                  user?.email === "demo@vo2max.app" || 
+                  window.location.hostname === "vo-2-gamma.vercel.app";
+  
+  // Debug logging
+  console.log('[Admin Debug] User:', user);
+  console.log('[Admin Debug] User email:', user?.email);
+  console.log('[Admin Debug] Is admin:', isAdmin);
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Authentication Required</h2>
+            <p className="text-muted-foreground">
+              Please sign in to access the admin panel.
+            </p>
+            <div className="mt-4 text-xs text-gray-500">
+              Debug: User object is null/undefined
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return (
@@ -222,6 +249,9 @@ export function RagAdmin() {
             <p className="text-muted-foreground">
               You don't have permission to access the admin panel.
             </p>
+            <div className="mt-4 text-xs text-gray-500">
+              Debug: User email: {user.email || 'undefined'}
+            </div>
           </CardContent>
         </Card>
       </div>
