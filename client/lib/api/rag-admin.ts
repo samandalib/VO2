@@ -390,3 +390,76 @@ export const ragAdminApi = {
     }
   }
 }; 
+
+// Fetch prompt templates from rag_settings
+export async function getPromptTemplates() {
+  const { data, error } = await supabase
+    .from('rag_settings')
+    .select('key, value')
+    .in('key', ['user_instruction', 'system_prompt']);
+  if (error || !data) throw error;
+  return {
+    userInstruction: data.find(d => d.key === 'user_instruction')?.value || '',
+    systemPrompt: data.find(d => d.key === 'system_prompt')?.value || ''
+  };
+}
+
+// Update prompt templates in rag_settings
+export async function updatePromptTemplates({ userInstruction, systemPrompt }: { userInstruction?: string, systemPrompt?: string }) {
+  let error = null;
+  if (userInstruction !== undefined) {
+    const { error: e } = await supabase
+      .from('rag_settings')
+      .update({ value: userInstruction })
+      .eq('key', 'user_instruction');
+    if (e) error = e;
+  }
+  if (systemPrompt !== undefined) {
+    const { error: e } = await supabase
+      .from('rag_settings')
+      .update({ value: systemPrompt })
+      .eq('key', 'system_prompt');
+    if (e) error = e;
+  }
+  return { success: !error, error };
+} 
+
+// Fetch chunking and retrieval settings from rag_settings
+export async function getSettings() {
+  const { data, error } = await supabase
+    .from('rag_settings')
+    .select('key, value')
+    .in('key', ['chunk_size', 'overlap', 'max_results']);
+  if (error || !data) throw error;
+  return {
+    chunkSize: Number(data.find(d => d.key === 'chunk_size')?.value || 500),
+    overlap: Number(data.find(d => d.key === 'overlap')?.value || 50),
+    maxResults: Number(data.find(d => d.key === 'max_results')?.value || 5),
+  };
+}
+
+export async function updateSettings({ chunkSize, overlap, maxResults }: { chunkSize?: number, overlap?: number, maxResults?: number }) {
+  let error = null;
+  if (chunkSize !== undefined) {
+    const { error: e } = await supabase
+      .from('rag_settings')
+      .update({ value: String(chunkSize) })
+      .eq('key', 'chunk_size');
+    if (e) error = e;
+  }
+  if (overlap !== undefined) {
+    const { error: e } = await supabase
+      .from('rag_settings')
+      .update({ value: String(overlap) })
+      .eq('key', 'overlap');
+    if (e) error = e;
+  }
+  if (maxResults !== undefined) {
+    const { error: e } = await supabase
+      .from('rag_settings')
+      .update({ value: String(maxResults) })
+      .eq('key', 'max_results');
+    if (e) error = e;
+  }
+  return { success: !error, error };
+} 

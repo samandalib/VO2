@@ -29,6 +29,8 @@ import {
 import { useAuth } from "@/contexts/SupabaseAuthContext";
 import { supabase } from "@/lib/supabase";
 import { ragAdminApi, type DocumentStats, type EmbeddingStats, type ChatStats, type SystemHealth, type Document, type ChatActivity } from "@/lib/api/rag-admin";
+import { getPromptTemplates, updatePromptTemplates } from "@/lib/api/rag-admin";
+import { getSettings, updateSettings } from "@/lib/api/rag-admin";
 
 interface PipelineCheckpoint {
   id: string;
@@ -130,6 +132,126 @@ export function RagAdmin() {
     { from: 'rag-api', to: 'supabase', status: 'disconnected' },
     { from: 'vector-search', to: 'rag-api', status: 'disconnected' }
   ]);
+
+  // Prompt template state
+  const [userInstruction, setUserInstruction] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState("");
+  const [promptLoading, setPromptLoading] = useState(false);
+  const [promptSaveStatus, setPromptSaveStatus] = useState<null | 'success' | 'error'>(null);
+
+  // Chunking/retrieval settings state
+  const [chunkSize, setChunkSize] = useState(500);
+  const [overlap, setOverlap] = useState(50);
+  const [maxResults, setMaxResults] = useState(5);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsSaveStatus, setSettingsSaveStatus] = useState<null | 'success' | 'error'>(null);
+
+  // Add edit mode state
+  const [editSettings, setEditSettings] = useState(false);
+  const [draftChunkSize, setDraftChunkSize] = useState(chunkSize);
+  const [draftOverlap, setDraftOverlap] = useState(overlap);
+  const [draftMaxResults, setDraftMaxResults] = useState(maxResults);
+  const [draftEmbeddingModel, setDraftEmbeddingModel] = useState('text-embedding-ada-002'); // Add model if needed
+
+  // When settings are loaded, update drafts
+  useEffect(() => {
+    setDraftChunkSize(chunkSize);
+    setDraftOverlap(overlap);
+    setDraftMaxResults(maxResults);
+    // setDraftEmbeddingModel(embeddingModel); // If you add model
+  }, [chunkSize, overlap, maxResults]);
+
+  // Fetch prompt templates on mount
+  useEffect(() => {
+    (async () => {
+      setPromptLoading(true);
+      try {
+        const { userInstruction, systemPrompt } = await getPromptTemplates();
+        setUserInstruction(userInstruction);
+        setSystemPrompt(systemPrompt);
+      } catch (e) {
+        setPromptSaveStatus('error');
+      } finally {
+        setPromptLoading(false);
+      }
+    })();
+  }, []);
+
+  // Fetch settings on mount
+  useEffect(() => {
+    (async () => {
+      setSettingsLoading(true);
+      try {
+        const { chunkSize, overlap, maxResults } = await getSettings();
+        setChunkSize(chunkSize);
+        setOverlap(overlap);
+        setMaxResults(maxResults);
+      } catch (e) {
+        setSettingsSaveStatus('error');
+      } finally {
+        setSettingsLoading(false);
+      }
+    })();
+  }, []);
+
+  const handlePromptSave = async () => {
+    setPromptLoading(true);
+    setPromptSaveStatus(null);
+    try {
+      const { success } = await updatePromptTemplates({ userInstruction, systemPrompt });
+      setPromptSaveStatus(success ? 'success' : 'error');
+    } catch (e) {
+      setPromptSaveStatus('error');
+    } finally {
+      setPromptLoading(false);
+    }
+  };
+
+  const handleSettingsSave = async () => {
+    setSettingsLoading(true);
+    setSettingsSaveStatus(null);
+    try {
+      const { success } = await updateSettings({
+        chunkSize: draftChunkSize,
+        overlap: draftOverlap,
+        maxResults: draftMaxResults,
+        // embeddingModel: draftEmbeddingModel
+      });
+      setSettingsSaveStatus(success ? 'success' : 'error');
+      if (success) setEditSettings(false);
+    } catch (e) {
+      setSettingsSaveStatus('error');
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
+  const handleEdit = () => setEditSettings(true);
+  const handleCancel = () => {
+    setDraftChunkSize(chunkSize);
+    setDraftOverlap(overlap);
+    setDraftMaxResults(maxResults);
+    // setDraftEmbeddingModel(embeddingModel);
+    setEditSettings(false);
+  };
+  const handleSave = async () => {
+    setSettingsLoading(true);
+    setSettingsSaveStatus(null);
+    try {
+      const { success } = await updateSettings({
+        chunkSize: draftChunkSize,
+        overlap: draftOverlap,
+        maxResults: draftMaxResults,
+        // embeddingModel: draftEmbeddingModel
+      });
+      setSettingsSaveStatus(success ? 'success' : 'error');
+      if (success) setEditSettings(false);
+    } catch (e) {
+      setSettingsSaveStatus('error');
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
 
   const refreshData = async () => {
     setIsLoading(true);
@@ -430,6 +552,25 @@ export function RagAdmin() {
     }
   };
 
+  // Update checkpoint icon backgrounds to use Tailwind color schema
+  const checkpointColors = {
+    browser: 'bg-primary',
+    supabase: 'bg-green-600 dark:bg-green-500',
+    openai: 'bg-purple-600 dark:bg-purple-500',
+    'rag-api': 'bg-orange-500 dark:bg-orange-400',
+    'vector-search': 'bg-red-500 dark:bg-red-400',
+  };
+
+  // Update SVG connection lines to use theme colors
+  const getConnectionColor = (status: string) => {
+    switch (status) {
+      case 'connected': return 'var(--color-primary, #3b82f6)'; // Tailwind primary
+      case 'testing': return 'var(--color-accent, #f59e42)'; // Tailwind accent
+      case 'error': return 'var(--color-destructive, #ef4444)'; // Tailwind destructive
+      default: return 'var(--color-muted, #d1d5db)'; // Tailwind muted
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -482,20 +623,20 @@ export function RagAdmin() {
           </CardHeader>
           <CardContent>
             {/* Pipeline Diagram */}
-            <div className="relative p-12 bg-gray-50 rounded-lg">
+            <div className="relative p-12 bg-card rounded-lg dark:bg-card">
               {/* Checkpoints */}
               <div className="grid grid-cols-5 gap-8 mb-12">
                 {checkpoints.map((checkpoint, index) => (
                   <div key={checkpoint.id} className="flex flex-col items-center">
                     <div className="relative">
-                                             <div className={`w-16 h-16 rounded-full border-4 border-gray-200 flex items-center justify-center ${getPipelineStatusColor(checkpoint.status)}`}>
+                      <div className={`w-16 h-16 rounded-full border-4 border-gray-200 flex items-center justify-center ${checkpointColors[checkpoint.id] || 'bg-secondary'}`}>
                         {checkpoint.icon}
                       </div>
                       {getStatusIcon(checkpoint.status)}
                     </div>
                     <div className="mt-2 text-center">
-                      <div className="font-semibold text-sm">{checkpoint.name}</div>
-                      <div className="text-xs text-gray-500">{checkpoint.description}</div>
+                      <div className="font-semibold text-sm text-primary dark:text-primary-foreground">{checkpoint.name}</div>
+                      <div className="text-xs text-muted-foreground">{checkpoint.description}</div>
                     </div>
                   </div>
                 ))}
@@ -510,7 +651,7 @@ export function RagAdmin() {
                   y1="50%"
                   x2="22%"
                   y2="50%"
-                  stroke={connections.find(c => c.from === 'browser' && c.to === 'supabase')?.status === 'connected' ? '#10b981' : '#d1d5db'}
+                  stroke={getConnectionColor(connections.find(c => c.from === 'browser' && c.to === 'supabase')?.status)}
                   strokeWidth="3"
                   strokeDasharray={connections.find(c => c.from === 'browser' && c.to === 'supabase')?.status === 'testing' ? "5,3" : "none"}
                   className="transition-all duration-300"
@@ -523,7 +664,7 @@ export function RagAdmin() {
                   y1="50%"
                   x2="42%"
                   y2="50%"
-                  stroke={connections.find(c => c.from === 'supabase' && c.to === 'vector-search')?.status === 'connected' ? '#10b981' : '#d1d5db'}
+                  stroke={getConnectionColor(connections.find(c => c.from === 'supabase' && c.to === 'vector-search')?.status)}
                   strokeWidth="3"
                   strokeDasharray={connections.find(c => c.from === 'supabase' && c.to === 'vector-search')?.status === 'testing' ? "5,3" : "none"}
                   className="transition-all duration-300"
@@ -536,7 +677,7 @@ export function RagAdmin() {
                   y1="50%"
                   x2="62%"
                   y2="50%"
-                  stroke={connections.find(c => c.from === 'rag-api' && c.to === 'openai')?.status === 'connected' ? '#10b981' : '#d1d5db'}
+                  stroke={getConnectionColor(connections.find(c => c.from === 'rag-api' && c.to === 'openai')?.status)}
                   strokeWidth="3"
                   strokeDasharray={connections.find(c => c.from === 'rag-api' && c.to === 'openai')?.status === 'testing' ? "5,3" : "none"}
                   className="transition-all duration-300"
@@ -549,7 +690,7 @@ export function RagAdmin() {
                   y1="50%"
                   x2="82%"
                   y2="50%"
-                  stroke={connections.find(c => c.from === 'vector-search' && c.to === 'rag-api')?.status === 'connected' ? '#10b981' : '#d1d5db'}
+                  stroke={getConnectionColor(connections.find(c => c.from === 'vector-search' && c.to === 'rag-api')?.status)}
                   strokeWidth="3"
                   strokeDasharray={connections.find(c => c.from === 'vector-search' && c.to === 'rag-api')?.status === 'testing' ? "5,3" : "none"}
                   className="transition-all duration-300"
@@ -879,37 +1020,135 @@ export function RagAdmin() {
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
-            <Card>
+            <Card className="mb-6">
               <CardHeader>
                 <CardTitle>RAG Pipeline Settings</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Embedding Model (optional, if you want to make it editable) */}
                   <div>
-                    <label className="text-sm font-medium">Embedding Model</label>
-                    <p className="text-sm text-muted-foreground">text-embedding-ada-002</p>
+                    <label className="block font-semibold mb-1">Embedding Model</label>
+                    <span className="text-sm text-muted-foreground">text-embedding-ada-002</span>
+                    {/*
+                    <select
+                      className="w-full rounded border border-input bg-background text-foreground p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700"
+                      value={draftEmbeddingModel}
+                      onChange={e => setDraftEmbeddingModel(e.target.value)}
+                      disabled={!editSettings || settingsLoading}
+                    >
+                      <option value="text-embedding-ada-002">text-embedding-ada-002</option>
+                      <option value="text-embedding-3-large">text-embedding-3-large</option>
+                    </select>
+                    */}
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Chunk Size</label>
-                    <p className="text-sm text-muted-foreground">1000 tokens</p>
+                    <label className="block font-semibold mb-1">Chunk Size</label>
+                    {editSettings ? (
+                      <input
+                        type="number"
+                        className="w-full rounded border border-input bg-background text-foreground p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700"
+                        value={draftChunkSize}
+                        min={1}
+                        onChange={e => setDraftChunkSize(Number(e.target.value))}
+                        disabled={settingsLoading}
+                      />
+                    ) : (
+                      <span className="text-sm text-muted-foreground">{chunkSize} tokens</span>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">Number of tokens per chunk.</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Overlap</label>
-                    <p className="text-sm text-muted-foreground">200 tokens</p>
+                    <label className="block font-semibold mb-1">Overlap</label>
+                    {editSettings ? (
+                      <input
+                        type="number"
+                        className="w-full rounded border border-input bg-background text-foreground p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700"
+                        value={draftOverlap}
+                        min={0}
+                        onChange={e => setDraftOverlap(Number(e.target.value))}
+                        disabled={settingsLoading}
+                      />
+                    ) : (
+                      <span className="text-sm text-muted-foreground">{overlap} tokens</span>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">Number of tokens overlapping between chunks.</p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium">Max Results</label>
-                    <p className="text-sm text-muted-foreground">5 documents</p>
+                    <label className="block font-semibold mb-1">Max Results</label>
+                    {editSettings ? (
+                      <input
+                        type="number"
+                        className="w-full rounded border border-input bg-background text-foreground p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700"
+                        value={draftMaxResults}
+                        min={1}
+                        onChange={e => setDraftMaxResults(Number(e.target.value))}
+                        disabled={settingsLoading}
+                      />
+                    ) : (
+                      <span className="text-sm text-muted-foreground">{maxResults} documents</span>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">Maximum number of chunks/documents retrieved per query.</p>
                   </div>
                 </div>
-                
-                <div className="pt-4 border-t">
-                  <Button variant="outline" className="mr-2">
-                    Update Settings
+                <div className="flex items-center gap-4 mt-4">
+                  {editSettings ? (
+                    <>
+                      <Button onClick={handleSave} disabled={settingsLoading}>
+                        {settingsLoading ? 'Saving...' : 'Save'}
+                      </Button>
+                      <Button variant="outline" onClick={handleCancel} disabled={settingsLoading}>
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <Button onClick={handleEdit} variant="outline">
+                      Edit Settings
+                    </Button>
+                  )}
+                  {settingsSaveStatus === 'success' && <span className="text-green-600">Saved!</span>}
+                  {settingsSaveStatus === 'error' && <span className="text-red-600">Error saving settings</span>}
+                </div>
+              </CardContent>
+            </Card>
+            {/* Prompt Templates Editor */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>RAG Prompt Templates</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="block font-semibold mb-1">User Instruction</label>
+                  <textarea
+                    className="w-full rounded border border-input bg-background text-foreground p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700"
+                    rows={3}
+                    value={userInstruction}
+                    onChange={e => setUserInstruction(e.target.value)}
+                    disabled={promptLoading}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <strong>What is this?</strong> This text is prepended to the user query and context. It tells the assistant how to answer, e.g., "Answer using only the provided context."
+                  </p>
+                </div>
+                <div>
+                  <label className="block font-semibold mb-1">System Prompt</label>
+                  <textarea
+                    className="w-full rounded border border-input bg-background text-foreground p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-zinc-900 dark:text-zinc-100 dark:border-zinc-700"
+                    rows={3}
+                    value={systemPrompt}
+                    onChange={e => setSystemPrompt(e.target.value)}
+                    disabled={promptLoading}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <strong>What is this?</strong> This is sent as the <code>system</code> message to OpenAI. It sets the assistant's behavior and role for the conversation.
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Button onClick={handlePromptSave} disabled={promptLoading}>
+                    {promptLoading ? 'Saving...' : 'Save Prompts'}
                   </Button>
-                  <Button variant="outline">
-                    Export Configuration
-                  </Button>
+                  {promptSaveStatus === 'success' && <span className="text-green-600">Saved!</span>}
+                  {promptSaveStatus === 'error' && <span className="text-red-600">Error saving prompts</span>}
                 </div>
               </CardContent>
             </Card>

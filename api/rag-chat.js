@@ -1,5 +1,11 @@
 import fetch from 'node-fetch';
 import { Readable } from 'stream';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 function getBaseUrl(req) {
   if (req.headers['x-forwarded-host']) {
@@ -27,9 +33,30 @@ async function getRelevantChunks(query, req) {
   return data.chunks;
 }
 
-function buildPrompt(contextChunks, userQuery) {
+async function getPromptTemplates() {
+  try {
+    const { data, error } = await supabase
+      .from('rag_settings')
+      .select('key, value')
+      .in('key', ['user_instruction', 'system_prompt']);
+    if (error || !data) throw error;
+    return {
+      userInstruction: data.find(d => d.key === 'user_instruction')?.value ||
+        'Answer the following question using only the provided context. If the answer is not in your context, say you don’t know.',
+      systemPrompt: data.find(d => d.key === 'system_prompt')?.value ||
+        'You are a helpful research assistant. Only answer using the provided context.'
+    };
+  } catch (e) {
+    return {
+      userInstruction: 'Answer the following question using only the provided context. If the answer is not in your context, say you don’t know.',
+      systemPrompt: 'You are a helpful research assistant. Only answer using the provided context.'
+    };
+  }
+}
+
+function buildPrompt(contextChunks, userQuery, userInstruction) {
   const context = contextChunks.map((c, i) => `Chunk ${i + 1} (${c.filename}):\n${c.chunk_text}`).join('\n\n');
-  return `Answer the following question using only the provided context. If the answer is not in the context, say you don’t know.\n\nContext:\n${context}\n\nQuestion: ${userQuery}`;
+  return `${userInstruction}\n\nContext:\n${context}\n\nQuestion: ${userQuery}`;
 }
 
 export default async function handler(req, res) {
@@ -44,7 +71,8 @@ export default async function handler(req, res) {
   }
   try {
     const chunks = await getRelevantChunks(query, req);
-    const prompt = buildPrompt(chunks, query);
+    const { userInstruction, systemPrompt } = await getPromptTemplates();
+    const prompt = buildPrompt(chunks, query, userInstruction);
     // Stream the answer from OpenAI using Node.js stream API
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -55,7 +83,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: OPENAI_CHAT_MODEL,
         messages: [
-          { role: 'system', content: 'You are a helpful research assistant. Only answer using the provided context.' },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt },
         ],
         stream: true,

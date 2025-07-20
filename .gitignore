@@ -35,3 +35,6 @@ dist-ssr
 /pdf/
 /pdfs/
 /pdfs-output/
+
+# Ignore archived files and folders
+archive/
