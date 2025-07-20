@@ -27,6 +27,7 @@ import {
   Loader2
 } from "lucide-react";
 import { useAuth } from "@/contexts/SupabaseAuthContext";
+import { supabase } from "@/lib/supabase";
 import { ragAdminApi, type DocumentStats, type EmbeddingStats, type ChatStats, type SystemHealth, type Document, type ChatActivity } from "@/lib/api/rag-admin";
 
 interface PipelineCheckpoint {
@@ -55,7 +56,7 @@ interface TestLogEntry {
   action: string;
   request?: string;
   response?: string;
-  status: 'pending' | 'success' | 'error' | 'waiting';
+  status: 'pending' | 'success' | 'error' | 'waiting' | 'warning';
   timestamp: string;
 }
 
@@ -237,8 +238,38 @@ export function RagAdmin() {
     };
     
     try {
-      // Test 1: Browser to Supabase connection
+      // Test 1: Browser to Supabase connection (with auth check)
       addLog('Step 1', 'Testing Browser to Supabase connection', 'pending');
+      addLog('Step 1', 'Checking authentication status', 'waiting', 'Checking if user is authenticated');
+      
+      // First check if we have a valid session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        addLog('Step 1', 'Authentication check failed', 'error', undefined, `Error: ${sessionError.message}`);
+        updateCheckpointStatus('supabase', 'error');
+        updateConnectionStatus('browser', 'supabase', 'error');
+        throw new Error('Authentication required for Supabase access');
+      }
+      
+      if (!session) {
+        addLog('Step 1', 'No active session found', 'warning', undefined, 'User must be authenticated to access Supabase');
+        addLog('Step 1', 'Attempting anonymous sign-in for testing', 'waiting', 'Signing in anonymously');
+        
+        // Try anonymous sign-in for testing
+        const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+        
+        if (anonError) {
+          addLog('Step 1', 'Anonymous sign-in failed', 'error', undefined, `Error: ${anonError.message}`);
+          updateCheckpointStatus('supabase', 'error');
+          updateConnectionStatus('browser', 'supabase', 'error');
+          throw new Error('Authentication required - anonymous sign-in failed');
+        }
+        
+        addLog('Step 1', 'Anonymous sign-in successful', 'success', undefined, 'Using anonymous session for testing');
+      }
+      
+      addLog('Step 1', 'Authentication successful', 'success', undefined, `User: ${session.user.email}`);
       addLog('Step 1', 'Sending request to get document stats', 'waiting', 'GET /api/document-stats');
       
       const docStats = await ragAdminApi.getDocumentStats();
