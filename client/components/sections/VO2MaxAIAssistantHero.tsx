@@ -88,6 +88,7 @@ export function VO2MaxAIAssistantHero() {
   const [hasAsked, setHasAsked] = useState(false);
   const [userMessage, setUserMessage] = useState<string>("");
   const [assistantReply, setAssistantReply] = useState<string>("");
+  const [isFocused, setIsFocused] = useState(false); // <-- focus state
   const scrollRef = useRef<HTMLDivElement>(null);
   const typingSample = useTypingAnimation(SAMPLE_QUESTIONS);
 
@@ -143,7 +144,12 @@ export function VO2MaxAIAssistantHero() {
       className="relative overflow-hidden bg-gradient-to-br from-background via-primary/5 to-primary/10 min-h-[80vh] flex flex-col items-center justify-center px-4 py-16"
       style={{ zIndex: 1 }}
     >
-      <div className="max-w-2xl w-full flex flex-col items-center gap-6">
+      <div
+        className={cn(
+          "max-w-2xl w-full flex flex-col items-center gap-6 bg-card rounded-2xl shadow-lg border border-border transition-all duration-200",
+          isFocused && "ring-2 ring-green-500 border-green-500"
+        )}
+      >
         {/* Hero title and subtitle only before first question is asked */}
         {!hasAsked && (
           <>
@@ -182,13 +188,15 @@ export function VO2MaxAIAssistantHero() {
         {/* Input box with typing animation */}
         <form
           onSubmit={handleSubmit}
-          className="w-full max-w-2xl flex items-center gap-2 bg-card rounded-2xl shadow-lg border border-border px-4 py-4"
+          className="w-full flex items-center gap-2 px-4 py-4"
         >
           <Textarea
             className="flex-1 border-none bg-transparent text-lg focus:ring-0 focus:outline-none placeholder:text-muted-foreground text-foreground h-14 resize-none min-h-[56px] max-h-[120px]"
             placeholder={typingSample || "Ask anything about VO₂max..."}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
                 e.preventDefault();
